@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 
-MODEL = "claude-opus-5-5"
+MODEL = "claude-haiku-5-5"  # fastest model for live demo answers; on refusal/error the template is used
 
 SYSTEM = (
     "You are RASED, an economic early-warning analyst for Ajman's Department of Economic Development. "
@@ -43,12 +43,10 @@ def _claude(mode: str, facts: dict, profile: dict | None, lang: str) -> str | No
     user = (f"TASK: {MODE_TASK.get(mode, MODE_TASK['theme'])}\n\n"
             f"FACTS_JSON:\n{json.dumps(facts, ensure_ascii=False, default=str)}\n\n"
             + (f"PROFILE:\n{json.dumps(profile, ensure_ascii=False)}\n" if profile else ""))
-    resp = client.beta.messages.create(
+    resp = client.messages.create(
         model=MODEL,
-        max_tokens=2000,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-        output_config={"effort": "low"},
+        max_tokens=1500,
+        output_config={"effort": "low"},  # fast replies for a live demo
         system=SYSTEM.format(lang="Arabic" if lang == "ar" else "English"),
         messages=[{"role": "user", "content": user}],
     )
