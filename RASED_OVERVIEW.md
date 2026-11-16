@@ -16,6 +16,31 @@
 
 ## 2. The problem
 
+### Problem statement
+
+**One line (hook):**
+> Ajman's economy is changing fast, but decision-makers only see the change months after it has happened.
+
+**Short version (problem slide):**
+> In 2026, Ajman's business landscape shifted sharply. Mainland registrations fell about 28% while Free Zone registrations rose about 7%, and virtual offices grew from 35% to 59% of new Free Zone setups. The data to spot these shifts already exists, but it is spread across separate files and portals, reviewed manually, and reaches officials months late. By the time DED sees a decline, businesses have already closed or gone elsewhere. Investors face the same gap from the other side: there is no simple way to tell which sectors and areas in Ajman are growing, crowded or at risk.
+
+**Structured version (bullets):**
+- **What's happening:** Since March 2026, a regional disruption has split Ajman's economy. Mainland registrations are down about 28%, Free Zone registrations are up about 7%, and businesses are moving to virtual offices.
+- **Why it matters:** Every business that doesn't renew is lost activity, jobs and revenue for Ajman. One point of renewal rate is worth about 370 businesses.
+- **The gap:**
+  1. Data is fragmented and reviewed late.
+  2. There is no early warning when something changes.
+  3. There is no clear link from a change to its likely causes and the right action.
+  4. Licence data is often misread as GDP or foreign investment.
+- **Who is affected:** DED officials, who react too late, and investors, who decide without guidance.
+- **The question we answer:** *How can Ajman see economic change as it happens, understand why, and act before it becomes a loss?*
+
+**Lead-in to the solution:** *"RASED sees the change before it happens. It warns, explains and recommends."*
+
+*(Check the figures against the real data before the slides are final.)*
+
+### Details
+
 - **Ajman's business activity changed sharply in 2026.** After a regional disruption that began in March 2026, Free Zone and mainland registrations moved in opposite directions: in H1 2026, Free Zone registrations were up about 7% while mainland registrations were down about 28%.
 - **How businesses set up is changing.** Virtual-office setups grew from about 35% to 59% of Free Zone registrations.
 - **Officials see these changes months late.** The data exists, but it sits in separate files and portals, and nobody is watching it continuously.
