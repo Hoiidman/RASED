@@ -187,6 +187,8 @@ def advisor(lang):
         _plot(fig)
     with c2:
         st.markdown(res["text"])
+        st.caption("Indicative, based on public data. Not financial advice. "
+                   "Forecasts cover the whole sector and area, not your business.")
         st.caption(f"Engine: {res['engine']}. Facts used: " + "; ".join(res["cited_facts"]))
 
 
