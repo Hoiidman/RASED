@@ -142,23 +142,31 @@ def advisor(lang):
     m1, m2, m3 = st.columns(3)
     m1.metric(f"{activity} growth", f"{facts['sector_growth_pct']:+.1f}%" if facts["sector_growth_pct"] is not None else "n/a")
     m2.metric(f"{area} demand growth", f"{facts['area_growth_pct']:+.1f}%" if facts["area_growth_pct"] is not None else "n/a")
-    m3.metric(f"Competition in {area}", facts["competition_level"].capitalize(), f"{facts['area_competition']:,} new licences / 12 mo",
-              delta_color="off")
+    m3.metric(f"Competition in {area}", facts["competition_level"].capitalize(),
+              f"{facts['area_competition']:,} new businesses in the area / 12 mo", delta_color="off")
     c1, c2 = st.columns([1.2, 1], gap="large")
     with c1:
         fc = be.get_forecast("new_reg_total")
         tot = be.get_series(["new_reg_total"])
         tot = tot[~tot["is_partial"]].set_index("period")["value"]
         share = (s.set_index("period")["value"].tail(6).sum() / tot.tail(6).sum())
+        sm = s.assign(v=s["value"].rolling(3, min_periods=1).mean())
+        piv = fc.pivot(index="period", columns="scenario", values="mean") * share
+        piv = piv.rolling(3, min_periods=1).mean()
+        lo, hi = piv[["A", "B", "C"]].min(axis=1), piv[["A", "B", "C"]].max(axis=1)
+        lx, ly = ch.dt(sm["period"]).iloc[-1], sm["v"].iloc[-1]
+        xf = pd.concat([pd.Series([lx]), ch.dt(pd.Series(piv.index))], ignore_index=True)
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=ch.dt(s["period"]), y=s["value"], name="Actual", mode="lines",
+        fig.add_trace(go.Scatter(x=pd.concat([xf, xf[::-1]]),
+                                 y=pd.concat([pd.Series([ly]), lo, hi[::-1], pd.Series([ly])], ignore_index=True),
+                                 fill="toself", fillcolor="rgba(182,138,53,0.18)", line=dict(width=0),
+                                 name="Range: slow to fast recovery", hoverinfo="skip"))
+        fig.add_trace(go.Scatter(x=ch.dt(sm["period"]), y=sm["v"], name="Actual (3-month average)", mode="lines",
                                  line=dict(color=ch.BLACK, width=3, shape="spline"), hovertemplate="%{y:,.0f}"))
-        for sc in ["A", "B", "C"]:
-            d = fc[fc["scenario"] == sc]
-            fig.add_trace(go.Scatter(x=ch.dt(d["period"]), y=d["mean"] * share, name=ch.SCEN_NAME[sc], mode="lines",
-                                     line=dict(color=ch.SCEN_COL[sc], width=2, dash="dash", shape="spline"),
-                                     hovertemplate="%{y:,.0f}"))
-        ch.add_shock(fig, end="2027-12")
+        fig.add_trace(go.Scatter(x=xf, y=pd.concat([pd.Series([ly]), piv["B"]], ignore_index=True),
+                                 name="Central outlook", mode="lines",
+                                 line=dict(color=ch.GOLD, width=3, dash="dash", shape="spline"), hovertemplate="%{y:,.0f}"))
+        ch.add_shock(fig, end=s["period"].max())
         ch.style(fig, f"{activity}: demand outlook in Ajman", "New licences per month · sector-level, not your business", 400)
         fig.update_yaxes(tickformat=",")
         _plot(fig)

@@ -25,10 +25,10 @@ _HIGH = {"01": 1.10, "10": 1.05, "12": 1.08, "07": 0.90, "08": 0.88}
 ACTIVITIES = ["General trading", "Restaurants & cafes", "Construction & contracting",
               "Professional services", "Retail shops", "Real estate", "IT & e-commerce",
               "Manufacturing", "Beauty & personal care", "Logistics & transport"]
-_ACT_TREND = [-0.10, 0.06, -0.18, 0.12, -0.05, 0.03, 0.28, 0.08, 0.10, 0.15]
+_ACT_TREND = [-0.10, 0.30, -0.18, 0.12, -0.05, 0.03, 0.28, 0.08, 0.10, 0.15]
 AREAS = ["Al Nuaimia", "Al Jurf", "Al Rashidiya", "Al Rawda", "Industrial Area",
          "Al Hamidiya", "Mushairef", "Al Zahra", "Al Bustan", "Al Mowaihat"]
-_AREA_TREND = [0.04, 0.14, -0.06, 0.09, 0.11, 0.18, -0.02, 0.05, -0.08, 0.12]
+_AREA_TREND = [0.26, 0.14, -0.06, 0.09, 0.11, 0.18, -0.02, 0.05, -0.08, 0.12]
 
 
 def _rng(salt: int = 0):

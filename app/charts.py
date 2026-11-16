@@ -55,18 +55,28 @@ def registrations_chart(df: pd.DataFrame, title: str, subtitle: str = "", height
     colors = {"Free Zone": GOLD, "Mainland": BLACK}
     for g, d in df.groupby("group", sort=False):
         d = d.sort_values("period")
-        full, part = d[~d["is_partial"]], d[d["is_partial"]]
+        full = d[~d["is_partial"]]  # partial month left out: it looks like a crash to non-experts
         c = colors.get(g, GREEN)
-        fig.add_trace(go.Scatter(x=dt(full["period"]), y=full["value"], name=g, mode="lines",
-                                 line=dict(color=c, width=3, shape="spline", smoothing=0.6),
+        x = dt(full["period"])
+        fig.add_trace(go.Scatter(x=x, y=full["value"], name=g, mode="lines",
+                                 line=dict(color=c, width=3.5, shape="spline", smoothing=0.6),
                                  hovertemplate="%{y:,.0f}"))
-        if not part.empty:
-            fig.add_trace(go.Scatter(x=dt(part["period"]), y=part["value"], name=f"{g} (partial month)",
-                                     mode="markers", marker=dict(color=GREY, size=9, line=dict(color=c, width=2)),
-                                     showlegend=False, hovertemplate="%{y:,.0f} (partial)"))
-    add_shock(fig, end=df["period"].max())
-    style(fig, title, subtitle, height)
-    fig.update_yaxes(title=None, tickformat=",")
+        # end-of-line label: name + H1 2026 vs H1 2025 (same comparison used across the app)
+        v = full["value"].to_numpy()
+        per = full["period"]
+        h26 = full[per.between("2026-01", "2026-06")]["value"].sum()
+        h25 = full[per.between("2025-01", "2025-06")]["value"].sum()
+        chg = (h26 / h25 - 1) * 100 if h25 else None
+        fig.add_trace(go.Scatter(x=[x.iloc[-1]], y=[v[-1]], mode="markers", marker=dict(color=c, size=9),
+                                 showlegend=False, hoverinfo="skip"))
+        lab = f"<b>{g}</b>" + (f"<br><span style='color:{GREEN if chg >= 0 else RED}'>{chg:+.0f}% H1 2026</span>"
+                               if chg is not None else "")
+        fig.add_annotation(x=x.iloc[-1], y=v[-1], text=lab, showarrow=False, xanchor="left", xshift=10,
+                           align="left", font=dict(size=13, color=c))
+    add_shock(fig, end=df[~df["is_partial"]]["period"].max())
+    style(fig, title, subtitle, height, legend=False)
+    fig.update_layout(margin=dict(r=110))
+    fig.update_yaxes(title=None, tickformat=",", rangemode="tozero")
     return fig
 
 

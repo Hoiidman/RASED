@@ -53,7 +53,7 @@ def overview(lang):
         df = be.get_series(["new_reg_total"], group_type="zone", start="2024-01")
         _plot(ch.registrations_chart(
             df, "Free Zone keeps growing while mainland registrations dropped",
-            "New business registrations per month · grey dot = partial month (excluded from models)", height=430))
+            "New business registrations per month · Nov 2026 is still partial and not shown", height=430))
     with right:
         st.markdown("**🔔 Early warnings**")
         for a in be.get_alerts()[:5]:
@@ -203,7 +203,10 @@ def sectors(lang):
     df = df[~df["is_partial"]].copy()
     p = pd.PeriodIndex(df["period"], freq="M")
     df["q"] = p.asfreq("Q").astype(str)
+    full_q = df.groupby("q")["period"].nunique()
+    df = df[df["q"].isin(full_q[full_q == 3].index)]  # complete quarters only
     q = df.groupby(["group", "q"])["value"].sum().unstack()
+    q.columns = [c.replace("Q", " Q") for c in q.columns]
     yoy = ((q / q.shift(4, axis=1) - 1) * 100).iloc[:, 4:].dropna(axis=1, how="all")
     yoy = yoy.loc[yoy.iloc[:, -1].sort_values(ascending=False).index]
     fig = go.Figure(go.Heatmap(

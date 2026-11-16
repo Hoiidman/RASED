@@ -76,14 +76,14 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
         p = profile or {}
         act, area, zone = p.get("activity", "your activity"), p.get("area", "your area"), p.get("zone", "Mainland")
         g = c("sector_growth_pct", f"{act} growth (H1 2026 vs H1 2025, %)")
-        comp = c("area_competition", f"New licences in {area} (last 12 months)")
+        comp = c("area_competition", f"New businesses in {area} (last 12 months)")
         lvl = f.get("competition_level", "moderate")
         zone_note = c("zone_change_pct", f"{zone} registrations change (H1 2026, %)")
         text = (
             f"**Outlook for {act} in {area} ({zone})**\n\n"
             f"- **Demand trend:** {act} registrations changed **{g}%** year-on-year — "
             f"{'a growing segment' if f.get('sector_growth_pct', 0) >= 0 else 'a cooling segment; differentiate clearly'}.\n"
-            f"- **Competition:** **{comp}** new licences in {area} over the last 12 months → **{lvl}** competition.\n"
+            f"- **Competition:** **{comp}** new businesses registered in {area} over the last 12 months → **{lvl}** competition.\n"
             f"- **Zone:** {zone} registrations changed **{zone_note}%** in H1 2026.\n\n"
             f"**Risks:** regional disruption since Mar 2026 is still weighing on mainland demand; "
             f"Ramadan/Eid months typically see 15–30% fewer new registrations.\n\n"
