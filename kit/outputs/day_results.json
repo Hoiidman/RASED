@@ -1,0 +1,140 @@
+{
+  "gdp_2025": {
+    "estimate_aed_mn": 41267,
+    "growth_%": 7.1,
+    "range_aed_mn": [
+      40333,
+      42201
+    ],
+    "by_driver": {
+      "Active Licenses": 41473,
+      "Permits": 41061
+    },
+    "elasticity": {
+      "Active Licenses": 0.7,
+      "Permits": 0.41
+    },
+    "r2": {
+      "Active Licenses": 0.81,
+      "Permits": 0.91
+    },
+    "backtest_mape_%": 2.3,
+    "backtest": [
+      {
+        "year": 2021,
+        "actual": 31656.9,
+        "nowcast": 32181.1,
+        "error_%": 1.7
+      },
+      {
+        "year": 2022,
+        "actual": 33884.0,
+        "nowcast": 33420.6,
+        "error_%": -1.4
+      },
+      {
+        "year": 2023,
+        "actual": 35967.0,
+        "nowcast": 34503.1,
+        "error_%": -4.1
+      },
+      {
+        "year": 2024,
+        "actual": 38549.0,
+        "nowcast": 37795.2,
+        "error_%": -2.0
+      }
+    ]
+  },
+  "renewal": [
+    {
+      "Year": 2018,
+      "Lapsed": 4540.0,
+      "Renewal rate": 0.849
+    },
+    {
+      "Year": 2019,
+      "Lapsed": 4526.0,
+      "Renewal rate": 0.848
+    },
+    {
+      "Year": 2020,
+      "Lapsed": 2340.0,
+      "Renewal rate": 0.916
+    },
+    {
+      "Year": 2021,
+      "Lapsed": 2303.0,
+      "Renewal rate": 0.916
+    },
+    {
+      "Year": 2022,
+      "Lapsed": 1997.0,
+      "Renewal rate": 0.931
+    },
+    {
+      "Year": 2023,
+      "Lapsed": 2321.0,
+      "Renewal rate": 0.925
+    },
+    {
+      "Year": 2024,
+      "Lapsed": 2798.0,
+      "Renewal rate": 0.919
+    },
+    {
+      "Year": 2025,
+      "Lapsed": 2095.0,
+      "Renewal rate": 0.943
+    }
+  ],
+  "fz_shock_effect_%": -32.1,
+  "fz_2027": {
+    "A. Disruption persists": 10057,
+    "B. Normalises in H1 2027": 13588,
+    "C. Quick recovery by Jan 2027": 14806
+  },
+  "fz_nov_2026_full_month": {
+    "A. Disruption persists": 850,
+    "B. Normalises in H1 2027": 850,
+    "C. Quick recovery by Jan 2027": 850
+  },
+  "fz_years": {
+    "2024": 2812,
+    "2025": 10842,
+    "2026_jan_oct": 7386,
+    "2025_jan_oct": 8666
+  },
+  "fz_backtest_mape_%": 12.7,
+  "virtual_office_share_%": {
+    "2024-01": 33,
+    "2024-12": 27,
+    "2025-12": 35,
+    "2026-02": 40,
+    "2026-06": 57,
+    "2026-10": 59
+  },
+  "2026": {
+    "A. Disruption persists": {
+      "new_licences": 5206,
+      "active_end_2026": 42713,
+      "renewal_rate": 0.923,
+      "licence_implied_gdp_aed_mn": 42038,
+      "growth_vs_2025_%": 1.9
+    },
+    "B. Normalises in H1 2027": {
+      "new_licences": 5206,
+      "active_end_2026": 43081,
+      "renewal_rate": 0.933,
+      "licence_implied_gdp_aed_mn": 42240,
+      "growth_vs_2025_%": 2.4
+    },
+    "C. Quick recovery by Jan 2027": {
+      "new_licences": 5521,
+      "active_end_2026": 43579,
+      "renewal_rate": 0.938,
+      "licence_implied_gdp_aed_mn": 42511,
+      "growth_vs_2025_%": 3.0
+    }
+  }
+}

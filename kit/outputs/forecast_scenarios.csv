@@ -1,0 +1,55 @@
+month,scenario,indicator,forecast,lower_80,upper_80,active_licences
+2026-07,A. Disruption persists through 2027,total,393,320,483,42267
+2026-08,A. Disruption persists through 2027,total,383,303,485,42450
+2026-09,A. Disruption persists through 2027,total,404,317,516,42653
+2026-10,A. Disruption persists through 2027,total,444,346,569,42896
+2026-11,A. Disruption persists through 2027,total,442,344,567,43138
+2026-12,A. Disruption persists through 2027,total,443,346,568,43380
+2027-01,A. Disruption persists through 2027,total,468,366,598,43648
+2027-02,A. Disruption persists through 2027,total,504,395,644,43951
+2027-03,A. Disruption persists through 2027,total,398,312,509,44149
+2027-04,A. Disruption persists through 2027,total,429,336,548,44378
+2027-05,A. Disruption persists through 2027,total,392,307,500,44569
+2027-06,A. Disruption persists through 2027,total,539,422,688,44907
+2027-07,A. Disruption persists through 2027,total,491,384,628,45198
+2027-08,A. Disruption persists through 2027,total,453,354,580,45451
+2027-09,A. Disruption persists through 2027,total,463,362,593,45713
+2027-10,A. Disruption persists through 2027,total,500,389,641,46013
+2027-11,A. Disruption persists through 2027,total,493,384,632,46305
+2027-12,A. Disruption persists through 2027,total,492,383,630,46596
+2026-07,B. Normalises in H1 2027,total,393,320,483,42267
+2026-08,B. Normalises in H1 2027,total,383,303,485,42450
+2026-09,B. Normalises in H1 2027,total,404,317,516,42653
+2026-10,B. Normalises in H1 2027,total,444,346,569,42896
+2026-11,B. Normalises in H1 2027,total,442,344,567,43138
+2026-12,B. Normalises in H1 2027,total,443,346,568,43380
+2027-01,B. Normalises in H1 2027,total,468,366,598,43648
+2027-02,B. Normalises in H1 2027,total,550,430,702,44009
+2027-03,B. Normalises in H1 2027,total,470,368,600,44302
+2027-04,B. Normalises in H1 2027,total,551,432,704,44690
+2027-05,B. Normalises in H1 2027,total,548,429,699,45086
+2027-06,B. Normalises in H1 2027,total,821,643,1048,45767
+2027-07,B. Normalises in H1 2027,total,748,585,957,46376
+2027-08,B. Normalises in H1 2027,total,690,539,884,46927
+2027-09,B. Normalises in H1 2027,total,706,551,904,47494
+2027-10,B. Normalises in H1 2027,total,761,593,977,48116
+2027-11,B. Normalises in H1 2027,total,751,585,964,48727
+2027-12,B. Normalises in H1 2027,total,749,584,961,49337
+2026-07,C. Quick recovery by Jan 2027,total,393,320,483,42267
+2026-08,C. Quick recovery by Jan 2027,total,383,303,485,42450
+2026-09,C. Quick recovery by Jan 2027,total,404,317,516,42653
+2026-10,C. Quick recovery by Jan 2027,total,492,384,631,42960
+2026-11,C. Quick recovery by Jan 2027,total,545,425,699,43335
+2026-12,C. Quick recovery by Jan 2027,total,607,473,778,43787
+2027-01,C. Quick recovery by Jan 2027,total,713,558,912,44361
+2027-02,C. Quick recovery by Jan 2027,total,768,601,981,44989
+2027-03,C. Quick recovery by Jan 2027,total,607,475,775,45457
+2027-04,C. Quick recovery by Jan 2027,total,653,512,834,45971
+2027-05,C. Quick recovery by Jan 2027,total,597,468,762,46429
+2027-06,C. Quick recovery by Jan 2027,total,821,643,1048,47111
+2027-07,C. Quick recovery by Jan 2027,total,748,585,957,47720
+2027-08,C. Quick recovery by Jan 2027,total,690,539,884,48271
+2027-09,C. Quick recovery by Jan 2027,total,706,551,904,48837
+2027-10,C. Quick recovery by Jan 2027,total,761,593,977,49459
+2027-11,C. Quick recovery by Jan 2027,total,751,585,964,50071
+2027-12,C. Quick recovery by Jan 2027,total,749,584,961,50680
