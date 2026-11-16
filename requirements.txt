@@ -1,0 +1,6 @@
+# --- Agent B (app/, core/ai.py, core/mocks.py) ---
+streamlit>=1.40
+plotly>=5.24
+pandas>=2.2
+numpy>=1.26
+anthropic  # optional: AI layer falls back to templates without it / without ANTHROPIC_API_KEY
