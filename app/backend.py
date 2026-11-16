@@ -28,7 +28,8 @@ ENGINE_USED: dict[str, str] = {}  # function name -> "real" | "mock"
 
 
 def use_mocks() -> bool:
-    return os.environ.get("RASED_USE_MOCKS", "1") != "0"
+    # Real engine by default (per-function mock fallback). Set RASED_USE_MOCKS=1 to force mocks.
+    return os.environ.get("RASED_USE_MOCKS", "0") == "1"
 
 
 def engine_summary() -> str:

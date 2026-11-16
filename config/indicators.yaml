@@ -1,0 +1,8 @@
+new_reg_total: {name_en: 'New registrations (all)', name_ar: 'التسجيلات الجديدة (الكل)'}
+new_reg_mainland: {name_en: 'New registrations - mainland', name_ar: 'التسجيلات الجديدة - البر الرئيسي'}
+new_reg_fz: {name_en: 'New registrations - Free Zone', name_ar: 'التسجيلات الجديدة - المنطقة الحرة'}
+virtual_office_share: {name_en: 'Virtual-office share', name_ar: 'حصة المكاتب الافتراضية'}
+active_licences: {name_en: 'Active licences', name_ar: 'الرخص السارية'}
+renewal_rate: {name_en: 'Renewal rate', name_ar: 'معدل التجديد'}
+cancelled_licences: {name_en: 'Cancelled licences', name_ar: 'الرخص الملغاة'}
+activity_signal: {name_en: 'Licence-implied activity signal', name_ar: 'مؤشر النشاط المستند إلى الرخص'}

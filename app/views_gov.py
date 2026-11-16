@@ -21,8 +21,8 @@ def _title(page):
     ui.page_title(t, q)
 
 
-def _plot(fig):
-    st.plotly_chart(fig, width="stretch", config=PC)
+def _plot(fig, key=None):
+    st.plotly_chart(fig, width="stretch", config=PC, key=key)
 
 
 # ------------------------------------------------------------------ Overview
@@ -53,7 +53,8 @@ def overview(lang):
         df = be.get_series(["new_reg_total"], group_type="zone", start="2024-01")
         _plot(ch.registrations_chart(
             df, "Free Zone keeps growing while mainland registrations dropped",
-            "New business registrations per month · Nov 2026 is still partial and not shown", height=430))
+            "New registrations per month. Mainland data runs to Jun 2026; Free Zone to Oct 2026 "
+            "(Nov is partial and not shown)", height=430))
     with right:
         ui.section("Early warnings")
         for a in sorted(be.get_alerts(), key=lambda a: not a.get("new", False))[:5]:
@@ -61,21 +62,32 @@ def overview(lang):
         st.caption("Factors and suggested actions are in the Early warnings tab.")
 
 
+def _vo_share():
+    vo = be.get_series(["virtual_office_share"])
+    vo = vo[~vo["is_partial"]].sort_values("period")
+    return round(float(vo["value"].iloc[-1]), 1) if not vo.empty else None
+
+
 # ------------------------------------------------------------------ Alerts
 def _alert_fig(a):
     """Best-effort mini chart for an alert; None if the series isn't available."""
     try:
         ind, grp = a["indicator"], a["group"]
-        if ind in ("virtual_office_share", "new_reg_mainland", "new_reg_fz"):
-            s = be.get_series([ind], start="2025-01")
-        elif ind == "new_reg_total":
-            s = be.get_series([ind], group_type="activity", start="2025-01")
-            s = s[s["group"] == grp]
-        elif ind == "renewal_rate":
-            s = be.get_series([ind])
-        else:
-            return None
-        if s.empty:
+        start = None if ind == "renewal_rate" else "2025-01"
+        s = None
+        # find the alert's own group in whichever breakdown holds it (activity, area, licence type, ...)
+        for gt in ([a["group_type"]] if a.get("group_type") else []) + [
+                "activity", "area", "licence_type", "legal_form", "facility", "zone"]:
+            cand = be.get_series([ind], group_type=gt, start=start)
+            cand = cand[cand["group"] == grp]
+            if not cand.empty:
+                s = cand
+                break
+        if s is None:  # totals only when the alert really is about the total
+            tot = be.get_series([ind], start=start)
+            if not tot.empty and grp in set(tot["group"]) | {"Ajman", "Total"}:
+                s = tot
+        if s is None or s.empty:
             return None
         col = ui.SEV.get(a["severity"], (ch.MUTED, ""))[0]
         return ch.alert_chart(s, a["period"], col, "%" if ind in ("virtual_office_share", "renewal_rate") else "")
@@ -151,7 +163,7 @@ def alerts(lang):
         with st.expander(f"Details: {a['group']}", expanded=a["id"] == items[0]["id"]):
             fig = _alert_fig(a)
             if fig is not None:
-                _plot(fig)
+                _plot(fig, key=f"alert_chart_{a['id']}")
             _context_block(a)
             c1, c2 = st.columns(2, gap="large")
             with c1:
@@ -236,7 +248,7 @@ def outlook(lang):
         d = fc[fc["scenario"] == s]
         in_win = d[d["period"].between(w0, w1)]
         rows.append({"Scenario": ch.SCEN_NAME[s],
-                     "2026 total (actual Jan–Oct + forecast)": int(actual_26 + d[d["period"].str.startswith("2026")]["mean"].sum()),
+                     f"2026 total (actual to {label(full['period'].max())} + forecast)": int(actual_26 + d[d["period"].str.startswith("2026")]["mean"].sum()),
                      "2027 total": int(d[d["period"].str.startswith("2027")]["mean"].sum()),
                      f"Forecast, {label(w0)} to {label(w1)}": int(in_win["mean"].sum())})
     c1, c2 = st.columns([1.4, 1], gap="large")
@@ -289,7 +301,7 @@ def actions(lang):
     k = be.get_kpis()
     zone = be.group_differences("zone")["table"].set_index("group")
     facts = {"renewal_rate": k["renewal_rate"]["value"], "retained_per_pt": be.simulate_renewal(1)["businesses_retained"],
-             "virtual_office_share": 59, "active_licences": k["active_licences"]["value"],
+             "virtual_office_share": _vo_share(), "active_licences": k["active_licences"]["value"],
              "mainland_change_pct": float(zone.loc["Mainland", "change_pct"]) if "Mainland" in zone.index else None,
              "open_alerts": k["open_alerts"]["value"]}
     if st.button("Generate recommendations", type="primary") or "gov_ai" in st.session_state:

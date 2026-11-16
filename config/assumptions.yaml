@@ -1,0 +1,10 @@
+forecast_end: '2027-12'
+# A verified kit adapter will replace the explicit baseline when available.
+forecast_method: kit
+scenarios:
+  A: [9, 12, 100]
+  B: [5, 6, 100]
+  C: [2, 3, 100]
+# Do not invent a renewal exposure base or elasticity without the source kit.
+renewal_base: null
+activity_elasticity: null

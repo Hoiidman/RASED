@@ -1,0 +1,55 @@
+- id: policy
+  name: Government policy
+  hypothesis: Dated policy changes may affect registrations.
+  proxy: New registrations around verified policy dates
+  source: Aggregate registrations and verified event calendar
+  test: Compare three months before and after, with the same months last year.
+  indicator: new_reg_total
+  needs_events: true
+- id: visa
+  name: Visa and residency rules
+  hypothesis: Setup preferences may shift with residency options.
+  proxy: Virtual-office share
+  source: Free Zone aggregate data
+  test: Monitor observed share; event dates are required for attribution.
+  indicator: virtual_office_share
+  needs_events: true
+- id: rent
+  name: Rent and real estate
+  hypothesis: Higher rents may encourage virtual offices.
+  proxy: Rental index
+  source: Official rental dataset required
+  test: Compare rent changes with office mix, including lags.
+  indicator: rent_index
+- id: infrastructure
+  name: Infrastructure
+  hypothesis: New infrastructure may support business activity.
+  proxy: Area-level registrations and verified project dates
+  source: Aggregate area data and project calendar required
+  test: Compare affected areas before and after project completion.
+  indicator: new_reg_total
+  group_type: area
+  needs_events: true
+- id: competition
+  name: Competition between emirates
+  hypothesis: Other emirates' offers may influence business setup choices.
+  proxy: Comparable registrations and dated offers across emirates
+  source: Comparable other-emirate data required
+  test: Compare shares using the same coverage and periods.
+  indicator: other_emirate_registrations
+- id: population
+  name: Population growth
+  hypothesis: More residents may support local services.
+  proxy: Population and service registrations
+  source: Official population dataset required
+  test: Track registrations per 1,000 residents.
+  indicator: population
+- id: corp_tax
+  name: Corporate tax
+  hypothesis: Tax policy may affect business setup choices.
+  proxy: Verified policy dates and legal-form mix
+  source: Verified policy sources and legal-form aggregates required
+  test: Before/after comparison; associations are not causal evidence.
+  indicator: new_reg_total
+  group_type: legal_form
+  needs_events: true

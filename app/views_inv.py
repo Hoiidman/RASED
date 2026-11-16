@@ -108,14 +108,24 @@ def watchouts(lang):
     st.caption("Indicative, based on public data. Not financial advice.")
 
 
+def _vo_share():
+    """Latest full-month virtual-office share of Free Zone registrations, from the data."""
+    vo = be.get_series(["virtual_office_share"])
+    vo = vo[~vo["is_partial"]].sort_values("period")
+    return round(float(vo["value"].iloc[-1]), 1) if not vo.empty else None
+
+
 # ------------------------------------------------------------------ Advisor
 def advisor(lang):
     _title("advisor")
-    from core.mocks import ACTIVITIES, AREAS  # catalogue lists (static)
+    # dropdowns come from whatever the engine has (real activity / area names, or the mock lists)
+    acts = sorted(be.group_differences("activity")["table"]["group"].tolist())
+    areas = sorted(be.group_differences("area")["table"]["group"].tolist())
+    pick = next((i for i, a in enumerate(acts) if "restaurant" in a.lower() or "trading" in a.lower()), 0)
     with st.form("advisor", border=False):
         c1, c2, c3, c4 = st.columns(4)
-        activity = c1.selectbox("Business activity", ACTIVITIES, index=ACTIVITIES.index("Restaurants & cafes"))
-        area = c2.selectbox("Area", AREAS, index=0)
+        activity = c1.selectbox("Business activity", acts, index=pick)
+        area = c2.selectbox("Area", areas, index=0)
         zone = c3.selectbox("Setup", ["Mainland", "Free Zone"])
         size = c4.selectbox("Size", ["Micro (1–5)", "Small (6–20)", "Medium (21–100)"])
         notes = st.text_area("Your plans (optional)", "Family restaurant, 40 seats, delivery focus",
@@ -135,7 +145,8 @@ def advisor(lang):
                  "area_growth_pct": float(ar.loc[area, "change_pct"]) if area in ar.index else None,
                  "area_competition": area_12, "competition_level": _competition(area_12 * 0.6),
                  "zone_change_pct": float(zt.loc[zone, "change_pct"]) if zone in zt.index else None,
-                 "virtual_office_share_fz_pct": 59, "source": "Ajman DED & Free Zone open data, H1 2026 vs H1 2025"}
+                 "virtual_office_share_fz_pct": _vo_share(),
+                 "source": "Ajman DED & Free Zone data, H1 2026 vs H1 2025 (activity and area figures are mainland only)"}
         profile = {"activity": activity, "area": area, "zone": zone, "size": size, "notes": notes}
         with st.spinner("Building your outlook"):
             res = ai.advise("investor", facts, profile, lang)

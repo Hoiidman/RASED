@@ -1,0 +1,14 @@
+off_forecast:
+  - Check reporting completeness before policy action.
+  - Ask the sector team to review registrations against the baseline.
+unusual_change:
+  - Validate the year-on-year comparison and investigate the affected group.
+  - Monitor the next complete month before drawing conclusions.
+mix_shift:
+  - Review changes in business setup preferences and renewal outcomes.
+  - Compare virtual and physical office cohorts before considering incentives.
+renewal_pressure:
+  - Review targeted renewal reminders and fee instalment options.
+  - Monitor renewals and lapse rates in the affected group.
+data_quality:
+  - Review the source schema and reporting coverage; retain the last good snapshot.

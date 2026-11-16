@@ -1,0 +1,12 @@
+# Local aggregate files only until official endpoint access and mappings are confirmed.
+refresh_minutes: 30
+sources:
+  - id: kit_aggregates
+    kind: forecast_kit
+    enabled: true
+    description: Supplied DED monthly/annual and Free Zone organiser aggregates
+  - id: ajman_open_data
+    kind: http
+    enabled: false
+    url: ''
+    description: Official dataset endpoint and column mapping pending verification

@@ -285,6 +285,12 @@ def get_context(period: str, sector: str | None = None) -> dict:
     }
 
 
+def refresh_context(period: str, sector=None, include_news=False):
+    """Agent A's explicit cache refresh (World Bank + GDELT), kept in core/context_a.py."""
+    from core.context_a import refresh_context as _refresh
+    return _refresh(period, sector, include_news)
+
+
 if __name__ == "__main__":  # quick manual check: python -m core.context
     for per, sec in (("2026-10", "Retail shops"), ("2026-09", "IT & e-commerce"), ("2026-06", "Mainland")):
         c = get_context(per, sec)
