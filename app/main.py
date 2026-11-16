@@ -17,9 +17,11 @@ for p in (str(ROOT), str(APP)):
 
 
 def _load_env():
-    env = ROOT / ".env"
-    if env.exists():
-        for line in env.read_text(encoding="utf-8").splitlines():
+    # .env.txt too: Windows Notepad often saves ".env" with a hidden .txt extension
+    for env in (ROOT / ".env", ROOT / ".env.txt"):
+        if not env.exists():
+            continue
+        for line in env.read_text(encoding="utf-8-sig").splitlines():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)

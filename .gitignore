@@ -1,4 +1,8 @@
 .env
+.env.txt
+.env.*
+!.env.example
+.claude/
 __pycache__/
 *.pyc
 .venv/
