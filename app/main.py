@@ -36,7 +36,7 @@ import backend as be  # noqa: E402
 import ui  # noqa: E402
 import views_gov  # noqa: E402
 import views_inv  # noqa: E402
-from labels import L  # noqa: E402
+from labels import LANG, L  # noqa: E402
 
 ui.inject_css()
 
@@ -46,6 +46,12 @@ INV_PAGES = ["opportunities", "watchouts", "advisor"]
 with st.sidebar:
     lang = "ar" if st.radio("Language / اللغة", ["EN", "ع"], horizontal=True, key="lang") == "ع" else "en"
     t = L[lang]
+    LANG["v"] = lang
+    if lang == "ar":  # right-to-left text in the main area; charts keep left-to-right axes
+        st.markdown("<style>.block-container{direction:rtl;text-align:right}"
+                    ".block-container .js-plotly-plot,.block-container .stPlotlyChart{direction:ltr}"
+                    ".r-tag{margin-left:0;margin-right:14px}.r-title .r-ar{margin-left:0;margin-right:8px}</style>",
+                    unsafe_allow_html=True)
     portal = st.radio(t["portal"], ["gov", "inv"], format_func=lambda k: t[k], key="portal")
     st.divider()
 
@@ -83,8 +89,7 @@ with st.sidebar:
         if st.button(t["logout"], width="stretch"):
             st.session_state.gov_ok = False
             st.rerun()
-    engine = "Mock data" if be.use_mocks() else "Live engine"
-    st.caption(f"{engine}. Licence data is a signal, not GDP or FDI.")
+    engine_slot = st.empty()  # filled after the page renders, once we know which functions ran for real
 
 ui.header(t["gov"] if portal == "gov" else t["inv"], t["tagline"])
 
@@ -102,3 +107,5 @@ if portal == "gov":
     views_gov.render(page, lang)
 else:
     views_inv.render(page, lang)
+
+engine_slot.caption(f"{be.engine_summary()}. Licence data is a signal, not GDP or FDI.")

@@ -9,13 +9,13 @@ import backend as be
 import charts as ch
 import ui
 from core import ai
-from labels import TITLES
+from labels import LANG, TITLES, TITLES_AR
 
 PC = ch.CHART_CONFIG
 
 
 def _title(page):
-    t, q = TITLES[page]
+    t, q = (TITLES_AR if LANG["v"] == "ar" else TITLES)[page]
     ui.page_title(t, q)
 
 

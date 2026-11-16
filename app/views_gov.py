@@ -11,13 +11,13 @@ import backend as be
 import charts as ch
 import ui
 from core import ai
-from labels import TITLES
+from labels import LANG, TITLES, TITLES_AR
 
 PC = ch.CHART_CONFIG
 
 
 def _title(page):
-    t, q = TITLES[page]
+    t, q = (TITLES_AR if LANG["v"] == "ar" else TITLES)[page]
     ui.page_title(t, q)
 
 
@@ -336,10 +336,15 @@ def export(lang):
     prev = be.get_series(ids, None if gt == "total" else gt, start, end)
     st.markdown(f"**Preview**, {len(prev):,} rows")
     st.dataframe(prev.head(200), hide_index=True, width="stretch", height=260)
-    data = be.export(ids, None if gt == "total" else gt, start, end, fmt)
-    if st.download_button(f"Download {fmt.upper()}", data, file_name=f"rased_export.{fmt}",
-                          mime="application/json" if fmt == "json" else "text/csv", type="primary"):
-        st.toast("Export logged to audit trail")
+    req = (tuple(ids), gt, start, end, fmt)
+    if st.button(f"Prepare {fmt.upper()} export", type="primary"):
+        # export() writes an audit-log line, so it runs only when the user asks for a file
+        st.session_state.export = (req, be.export(ids, None if gt == "total" else gt, start, end, fmt))
+        st.toast("Export logged to the audit trail")
+    ready = st.session_state.get("export")
+    if ready and ready[0] == req:
+        st.download_button(f"Download {fmt.upper()}", ready[1], file_name=f"rased_export.{fmt}",
+                           mime="application/json" if fmt == "json" else "text/csv")
     url = f"/v1/indicators/data?ids={','.join(ids)}" + (f"&group={gt}" if gt != "total" else "") + f"&from={start}&to={end}"
     st.markdown("**Same data via the REST API** (header `X-API-Key`):")
     st.code(f"curl -H 'X-API-Key: <your-key>' 'http://localhost:8000{url}'", language="bash")
