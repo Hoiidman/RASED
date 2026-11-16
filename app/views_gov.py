@@ -38,7 +38,7 @@ def overview(lang):
                "2025 · +1 pt ≈ +370 businesses", delta_suffix=" pts")
     with cols[2]:
         nb = k["new_businesses"]
-        ui.kpi("New businesses 2025", f"{nb['value']:,}", nb.get("change_pct"),
+        ui.kpi("New businesses 2025", f"{int(nb['value']):,}", nb.get("change_pct"),
                f"Mainland + Free Zone · FZ {nb.get('fz_share_pct', 59):.0f}%")
     with cols[3]:
         ui.kpi("Activity signal", f"+{k['activity_signal']['value']}%", None, "Licence-implied · a signal, not GDP")
