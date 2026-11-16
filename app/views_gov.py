@@ -58,7 +58,7 @@ def overview(lang):
         ui.section("Early warnings")
         for a in be.get_alerts()[:5]:
             ui.alert_card(a)
-        st.caption("Factors and suggested actions are on the Early warnings page.")
+        st.caption("Factors and suggested actions are in the Early warnings tab.")
 
 
 # ------------------------------------------------------------------ Alerts

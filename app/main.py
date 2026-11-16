@@ -81,8 +81,6 @@ if portal == "gov" and not st.session_state.get("gov_ok"):
 
 pages = GOV_PAGES if portal == "gov" else INV_PAGES
 with st.sidebar:
-    page = st.radio(t["nav"], pages, format_func=lambda k: t["p_" + k], key=f"page_{portal}")
-    st.divider()
     if portal == "gov":
         if st.button(t["sync_now"], width="stretch"):
             res = be.run_sync(force=True)
@@ -105,9 +103,10 @@ if portal == "gov":
                   + (f", {n_al} new alert{'s' if n_al != 1 else ''}" if n_al else ""))
 ui.meta_line(be.sync_status(), update)
 
-if portal == "gov":
-    views_gov.render(page, lang)
-else:
-    views_inv.render(page, lang)
+# Pages as tabs across the top. Every tab renders on each run; engine reads are cached in backend.
+views = views_gov if portal == "gov" else views_inv
+for tab, page in zip(st.tabs([t["p_" + k] for k in pages]), pages):
+    with tab:
+        views.render(page, lang)
 
 engine_slot.caption(f"{be.engine_summary()}. Licence data is a signal, not GDP or FDI.")

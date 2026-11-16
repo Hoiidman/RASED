@@ -47,7 +47,10 @@ section[data-testid="stSidebar"] button p {{ color: {BLACK} !important; }}
   margin: 18px 0 6px 0; }}
 .muted {{ color: {MUTED}; font-size: 13px; }}
 .page-title {{ font-size: 24px; font-weight: 700; color: {BLACK}; margin: 8px 0 0 0; }}
-.page-q {{ color: {MUTED}; font-size: 15px; margin-bottom: 14px; }}
+.page-q {{ color: {BLACK}; font-size: 19px; font-weight: 600; margin: 6px 0 14px 0; }}
+div[data-baseweb="tab-list"] {{ gap: 22px; border-bottom: 1px solid {RULE}; }}
+button[data-baseweb="tab"] p {{ font-size: 15px; font-weight: 500; }}
+button[data-baseweb="tab"][aria-selected="true"] p {{ color: {BLACK}; font-weight: 700; }}
 div[data-testid="stMetricValue"] {{ color: {BLACK}; }}
 </style>
 """
@@ -95,8 +98,8 @@ def meta_line(status: list[dict], update: str | None = None):
 
 
 def page_title(title: str, question: str = ""):
-    st.markdown(f'<div class="page-title">{escape(title)}</div>'
-                + (f'<div class="page-q">{escape(question)}</div>' if question else ""), unsafe_allow_html=True)
+    """Pages live in tabs that already show the title, so only the guiding question is drawn."""
+    st.markdown(f'<div class="page-q">{escape(question or title)}</div>', unsafe_allow_html=True)
 
 
 def section(text: str):
