@@ -30,7 +30,7 @@ _load_env()
 
 import streamlit as st  # noqa: E402
 
-st.set_page_config(page_title="RASED | راصد", page_icon="📡", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="RASED | راصد", layout="wide", initial_sidebar_state="expanded")
 
 import backend as be  # noqa: E402
 import ui  # noqa: E402
@@ -65,7 +65,7 @@ if portal == "gov" and not st.session_state.get("gov_ok"):
                 else:
                     st.error(t["wrong_pw"])
         else:
-            st.info(t["demo_login"])
+            st.caption(t["demo_login"])
             if st.button(t["login"], type="primary"):
                 st.session_state.gov_ok = True
                 st.rerun()
@@ -76,7 +76,7 @@ with st.sidebar:
     page = st.radio(t["nav"], pages, format_func=lambda k: t["p_" + k], key=f"page_{portal}")
     st.divider()
     if portal == "gov":
-        if st.button("🔄 " + t["sync_now"], width="stretch"):
+        if st.button(t["sync_now"], width="stretch"):
             res = be.run_sync(force=True)
             st.session_state.last_sync = res
             st.toast(f"{len(res.get('changed', []))} dataset(s) changed · {res.get('new_alerts', 0)} new alert(s)")
@@ -84,19 +84,21 @@ with st.sidebar:
             st.session_state.gov_ok = False
             st.rerun()
     engine = "Mock data" if be.use_mocks() else "Live engine"
-    st.caption(f"⚙️ {engine} · Licence data is a signal, not GDP/FDI.")
+    st.caption(f"{engine}. Licence data is a signal, not GDP or FDI.")
 
 ui.header(t["gov"] if portal == "gov" else t["inv"], t["tagline"])
-ui.health_strip(be.sync_status())
 
+update = None
 if portal == "gov":
     changes = be.get_changes()
     if changes:
         last = changes[0]
-        n_ds = len({c["dataset"] for c in changes[:3]})
-        n_al = sum(c.get("new_alerts", 0) for c in changes[:1])
-        ui.banner(f"Updated {ui.ago(last['time'])} · {n_ds} dataset(s) changed recently · {n_al} new alert(s) "
-                  f"— latest: {last['dataset']} (+{last['rows_added']} rows)")
+        n_al = last.get("new_alerts", 0)
+        update = (f"Updated {ui.ago(last['time'])}: {last['dataset']} added {last['rows_added']:,} rows"
+                  + (f", {n_al} new alert{'s' if n_al != 1 else ''}" if n_al else ""))
+ui.meta_line(be.sync_status(), update)
+
+if portal == "gov":
     views_gov.render(page, lang)
 else:
     views_inv.render(page, lang)

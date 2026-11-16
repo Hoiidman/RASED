@@ -55,13 +55,34 @@ def overview(lang):
             df, "Free Zone keeps growing while mainland registrations dropped",
             "New business registrations per month · Nov 2026 is still partial and not shown", height=430))
     with right:
-        st.markdown("**🔔 Early warnings**")
+        ui.section("Early warnings")
         for a in be.get_alerts()[:5]:
             ui.alert_card(a)
-        st.caption("Open *Early warnings* for factors and suggested actions.")
+        st.caption("Factors and suggested actions are on the Early warnings page.")
 
 
 # ------------------------------------------------------------------ Alerts
+def _alert_fig(a):
+    """Best-effort mini chart for an alert; None if the series isn't available."""
+    try:
+        ind, grp = a["indicator"], a["group"]
+        if ind in ("virtual_office_share", "new_reg_mainland", "new_reg_fz"):
+            s = be.get_series([ind], start="2025-01")
+        elif ind == "new_reg_total":
+            s = be.get_series([ind], group_type="activity", start="2025-01")
+            s = s[s["group"] == grp]
+        elif ind == "renewal_rate":
+            s = be.get_series([ind])
+        else:
+            return None
+        if s.empty:
+            return None
+        col = ui.SEV.get(a["severity"], (ch.MUTED, ""))[0]
+        return ch.alert_chart(s, a["period"], col, "%" if ind in ("virtual_office_share", "renewal_rate") else "")
+    except Exception:  # noqa: BLE001 - a missing chart must never break the alert list
+        return None
+
+
 def alerts(lang):
     _title("alerts")
     sev = st.segmented_control("Severity", ["All", "high", "medium", "low"], default="All")
@@ -70,10 +91,14 @@ def alerts(lang):
         st.success("No alerts at this severity.")
     for a in items:
         ui.alert_card(a, compact=False)
-        with st.expander(f"Why and what to do — {a['group']}", expanded=a["id"] == items[0]["id"]):
+        with st.expander(f"Details: {a['group']}", expanded=a["id"] == items[0]["id"]):
+            fig = _alert_fig(a)
+            if fig is not None:
+                _plot(fig)
             c1, c2 = st.columns(2, gap="large")
             with c1:
-                st.markdown("**Possible contributing factors** · *context only — analyst to confirm*")
+                st.markdown("**Possible contributing factors**  \n<span class='muted'>Context only. An analyst should "
+                            "confirm before acting.</span>", unsafe_allow_html=True)
                 for f in a["possible_factors"]:
                     st.markdown(f"- {f['text']}  \n  <span class='muted'>{f['source']} · {f['date']}</span>",
                                 unsafe_allow_html=True)
@@ -82,9 +107,9 @@ def alerts(lang):
                 for i, act in enumerate(a["actions"], 1):
                     st.markdown(f"{i}. {act}")
             if a.get("status") != "acknowledged":
-                if st.button("✓ Acknowledge & assign", key=f"ack_{a['id']}"):
+                if st.button("Acknowledge and assign", key=f"ack_{a['id']}"):
                     be.acknowledge(a["id"], "gov_user")
-                    st.toast(f"{a['id']} acknowledged — logged to audit trail")
+                    st.toast(f"{a['id']} acknowledged and logged to the audit trail")
                     st.rerun()
             st.caption(f"Rule: {a['rule'].replace('_', ' ')} · indicator: {a['indicator']} · id {a['id']}")
 
@@ -122,7 +147,8 @@ def outlook(lang):
                       shape="spline", smoothing=0.5),
             hovertemplate="%{y:,.0f}"))
     ch.add_shock(fig, end=full["period"].max())
-    ch.style(fig, "Three recovery paths — and yours", "Monthly registrations · history + scenarios to Dec 2027", 460)
+    ch.style(fig, "Three recovery paths, plus the one set by your sliders",
+             "Monthly registrations, history and scenarios to Dec 2027", 460)
     fig.update_yaxes(tickformat=",")
     _plot(fig)
 
@@ -138,12 +164,12 @@ def outlook(lang):
         st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch",
                      column_config={k: st.column_config.NumberColumn(format="localized") for k in rows[0] if k != "Scenario"})
     with c2:
-        with st.expander("📋 Assumptions", expanded=True):
-            st.markdown(
-                "- Model: SARIMAX (log) + Ramadan/Eid effects + disruption dial\n"
-                "- Back-test error: ~10% yearly (mainland, normal years); FZ shown as scenarios only\n"
-                "- Partial months excluded from models\n"
-                "- A = recovery after 9 months over 12 · B = 5 over 6 · C = 2 over 3")
+        ui.section("Assumptions")
+        st.markdown(
+            "- Model: SARIMAX on logs, with Ramadan/Eid effects and a disruption dial\n"
+            "- Back-test error about 10% a year for mainland in normal years. Free Zone is shown as scenarios only.\n"
+            "- Partial months are left out of the models\n"
+            "- A: recovery starts after 9 months and takes 12. B: 5 and 6. C: 2 and 3.")
 
 
 # ------------------------------------------------------------------ Actions
@@ -151,7 +177,7 @@ def actions(lang):
     _title("actions")
     c1, c2 = st.columns([1, 1.3], gap="large")
     with c1:
-        st.markdown("#### 🎚️ Policy simulator")
+        ui.section("Policy simulator")
         delta = st.slider("Raise renewal rate by (points)", 0.0, 3.0, 1.0, 0.1)
         sim = be.simulate_renewal(delta)
         m1, m2, m3 = st.columns(3)
@@ -179,7 +205,7 @@ def actions(lang):
         fig.update_yaxes(range=[base * 0.9, (base + sim["businesses_retained"] + extra) * 1.03], tickformat=",")
         fig.update_layout(hovermode="closest")
         _plot(fig)
-    st.markdown("#### 🤖 Recommended actions")
+    ui.section("Recommended actions")
     k = be.get_kpis()
     zone = be.group_differences("zone")["table"].set_index("group")
     facts = {"renewal_rate": k["renewal_rate"]["value"], "retained_per_pt": be.simulate_renewal(1)["businesses_retained"],
@@ -188,12 +214,11 @@ def actions(lang):
              "open_alerts": k["open_alerts"]["value"]}
     if st.button("Generate recommendations", type="primary") or "gov_ai" in st.session_state:
         if "gov_ai" not in st.session_state:
-            with st.spinner("Analysing facts…"):
+            with st.spinner("Analysing facts"):
                 st.session_state.gov_ai = ai.advise("gov_actions", facts, lang=lang)
         res = st.session_state.gov_ai
-        with st.container(border=True):
-            st.markdown(res["text"])
-        st.caption(f"Engine: {res['engine']} · grounded on: " + "; ".join(res["cited_facts"]))
+        st.markdown(res["text"])
+        st.caption(f"Engine: {res['engine']}. Based on: " + "; ".join(res["cited_facts"]))
 
 
 # ------------------------------------------------------------------ Sectors & groups
@@ -220,16 +245,16 @@ def sectors(lang):
     fig.update_layout(hovermode="closest")
     fig.update_xaxes(showline=False, ticks="")
     _plot(fig)
-    why = {"IT & e-commerce": "Digital economy growth — diversifies Ajman beyond trading",
-           "Construction & contracting": "Watch project pipeline; affects jobs and suppliers",
-           "General trading": "Largest base — small % changes = many businesses",
+    why = {"IT & e-commerce": "Digital economy growth that diversifies Ajman beyond trading",
+           "Construction & contracting": "Watch the project pipeline; affects jobs and suppliers",
+           "General trading": "Largest base, so small % changes mean many businesses",
            "Logistics & transport": "Benefits from port & road connectivity",
            "Restaurants & cafes": "Population-driven demand; seasonal around Ramadan"}
     st.dataframe(pd.DataFrame({"Sector": yoy.index, "Latest quarter YoY %": yoy.iloc[:, -1].round(1).values,
                                "Why it matters for Ajman": [why.get(s, "Track against population & area growth") for s in yoy.index]}),
                  hide_index=True, width="stretch")
 
-    st.markdown("#### Which groups differ")
+    ui.section("Which groups differ")
     dims = {"zone": "Mainland vs FZ", "licence_type": "Licence type", "legal_form": "Legal form",
             "facility": "Facility (virtual office)", "area": "Area", "activity": "Activity"}
     tabs = st.tabs(list(dims.values()))
@@ -254,42 +279,32 @@ def sectors(lang):
 # ------------------------------------------------------------------ Drivers
 def drivers(lang):
     _title("drivers")
-    st.caption("Each driver is a hypothesis with a measurable proxy — monitored, not proven.")
-    stat = {"ready": (ch.GREEN, "Data ready"), "partial": (ch.GOLD, "Partial data"),
-            "data_needed": (ch.MUTED, "Monitoring — data needed")}
+    st.caption("Each driver is a hypothesis with a measurable proxy. They are monitored, not proven.")
+    stat = {"ready": "Data ready", "partial": "Partial data", "data_needed": "Data needed"}
     ds = be.get_drivers()
-    for i in range(0, len(ds), 2):
-        cols = st.columns(2, gap="medium")
-        for col, d in zip(cols, ds[i:i + 2]):
-            c, lab = stat.get(d["status"], (ch.MUTED, d["status"]))
-            with col:
-                st.markdown(
-                    f'<div class="card"><h4>{d["name"]} <span class="pill" style="background:{c}">{lab}</span></h4>'
-                    f'<div class="muted"><b>Hypothesis:</b> {d["hypothesis"]}<br><b>Proxy:</b> {d["proxy"]}<br>'
-                    f'<b>Source:</b> {d["source"]}<br><b>Test:</b> {d["test"]}</div>'
-                    + (f'<div style="margin-top:6px"><b>Result:</b> {d["result"]}</div>' if d.get("result") else "")
-                    + "</div>", unsafe_allow_html=True)
-                if d.get("chart") is not None and len(d["chart"]):
-                    cd = d["chart"]
-                    f = go.Figure(go.Scatter(x=ch.dt(cd["period"]), y=cd["value"], mode="lines",
-                                             line=dict(color=ch.GOLD, width=3, shape="spline")))
-                    ch.style(f, "", "", 180, legend=False)
-                    f.update_layout(margin=dict(l=10, r=10, t=10, b=10))
-                    _plot(f)
+    st.dataframe(pd.DataFrame([{
+        "Driver": d["name"], "Status": stat.get(d["status"], d["status"]), "Hypothesis": d["hypothesis"],
+        "What we measure": d["proxy"], "Source": d["source"], "Finding so far": d.get("result") or "",
+    } for d in ds]), hide_index=True, width="stretch")
+    for d in ds:
+        if d.get("chart") is not None and len(d["chart"]):
+            cd = d["chart"]
+            f = go.Figure(go.Scatter(x=ch.dt(cd["period"]), y=cd["value"], mode="lines",
+                                     line=dict(color=ch.GOLD, width=3, shape="spline"), hovertemplate="%{y:.0f}%"))
+            ch.style(f, f"{d['name']}: {d.get('result') or ''}", d["proxy"], 300, legend=False)
+            f.update_yaxes(ticksuffix="%")
+            _plot(f)
 
 
 # ------------------------------------------------------------------ Impact
 def impact(lang):
     _title("impact")
-    cols = st.columns(4)
-    for col, (icon, head, txt) in zip(cols, [
-        ("⏱️", "Faster decisions", "Changes flagged in weeks, not months"),
-        ("🏪", "Businesses kept", "~370 businesses per +1 pt renewal"),
-        ("🎯", "Targeted support", "Know which sectors, areas & setups need help"),
-        ("🌍", "More investors", "Clear, public guidance for new businesses")]):
-        col.markdown(f'<div class="card"><h4>{icon} {head}</h4><div class="muted">{txt}</div></div>',
-                     unsafe_allow_html=True)
-    st.markdown("#### KPI framework")
+    st.markdown(
+        "- **Faster decisions.** Changes are flagged within weeks instead of months.\n"
+        "- **More businesses kept.** Each extra point of renewal rate keeps about 370 businesses.\n"
+        "- **Better targeting.** DED can see which sectors, areas and setup types need support.\n"
+        "- **More investors.** New businesses get clear, public guidance on where demand is.")
+    ui.section("KPI framework")
     st.dataframe(pd.DataFrame([
         ["Renewal rate", "94.3% (2025)", "95.3% (2027)", "DED licence data", "Monthly"],
         ["Businesses retained via renewal actions", "0", "+370 / year", "DED licence data", "Monthly"],
@@ -299,7 +314,7 @@ def impact(lang):
         ["Decisions using RASED", "0", "≥ 50% of DED policy memos", "DED survey", "Quarterly"],
         ["Investor advisor sessions", "0", "1,000 / quarter", "RASED usage", "Quarterly"],
     ], columns=["KPI", "Baseline", "Target", "Data source", "Frequency"]), hide_index=True, width="stretch")
-    st.info("Licence data is a **signal** of economic activity — not GDP, and not FDI. RASED says so on every page.")
+    st.caption("Licence data is a signal of economic activity. It is not GDP and not FDI.")
 
 
 # ------------------------------------------------------------------ Export
@@ -319,16 +334,16 @@ def export(lang):
         st.warning("Pick at least one metric.")
         return
     prev = be.get_series(ids, None if gt == "total" else gt, start, end)
-    st.markdown(f"**Preview** · {len(prev):,} rows")
+    st.markdown(f"**Preview**, {len(prev):,} rows")
     st.dataframe(prev.head(200), hide_index=True, width="stretch", height=260)
     data = be.export(ids, None if gt == "total" else gt, start, end, fmt)
-    if st.download_button(f"⬇️ Download {fmt.upper()}", data, file_name=f"rased_export.{fmt}",
+    if st.download_button(f"Download {fmt.upper()}", data, file_name=f"rased_export.{fmt}",
                           mime="application/json" if fmt == "json" else "text/csv", type="primary"):
         st.toast("Export logged to audit trail")
     url = f"/v1/indicators/data?ids={','.join(ids)}" + (f"&group={gt}" if gt != "total" else "") + f"&from={start}&to={end}"
     st.markdown("**Same data via the REST API** (header `X-API-Key`):")
     st.code(f"curl -H 'X-API-Key: <your-key>' 'http://localhost:8000{url}'", language="bash")
-    st.caption("Full API docs at /docs (FastAPI / OpenAPI). Aggregates only; groups < 5 records suppressed.")
+    st.caption("Full API docs at /docs. Totals and averages only; groups with fewer than 5 records are hidden.")
 
 
 PAGES = {"overview": overview, "alerts": alerts, "outlook": outlook, "actions": actions, "sectors": sectors,

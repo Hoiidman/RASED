@@ -35,26 +35,31 @@ def _competition(n):
 # ------------------------------------------------------------------ Opportunities
 def opportunities(lang):
     _title("opportunities")
-    st.markdown("Based on public licence data from Ajman DED and Ajman Free Zone — updated automatically.")
+    st.caption("Based on public licence data from Ajman DED and Ajman Free Zone, updated automatically.")
     act = be.group_differences("activity")["table"]
     mon = _activity_monthly()
     top = act.head(4)
-    cols = st.columns(4, gap="medium")
+    ui.section("Fastest-growing sectors, H1 2026 vs H1 2025")
+    cols = st.columns(4, gap="large")
     for col, (_, r) in zip(cols, top.iterrows()):
         s = mon[mon["group"] == r["group"]].sort_values("period")
         last12 = int(s["value"].tail(12).sum())
         with col:
-            st.markdown(
-                f'<div class="card"><div class="muted">Growing sector</div><h4>{r["group"]}</h4>'
-                f'<div style="font-size:26px;font-weight:700;color:{ch.GREEN}">{r["change_pct"]:+.0f}%</div>'
-                f'<div class="muted">H1 2026 vs H1 2025 · competition: <b>{_competition(last12)}</b> '
-                f'({last12:,} new licences / 12 mo)</div></div>', unsafe_allow_html=True)
+            ui.kpi(r["group"], f"{r['change_pct']:+.0f}%", None,
+                   f"Competition {_competition(last12)}: {last12:,} new licences in 12 months")
             st.plotly_chart(ch.sparkline(s["value"].tail(18)), width="stretch", config={"displayModeBar": False})
 
     c1, c2 = st.columns(2, gap="large")
     with c1:
         area = be.group_differences("area")
-        _plot(ch.bar_change(area["table"], "Where demand is growing", area["finding_en"], height=430))
+        at = area["table"]
+        overall = (at["H1 2026"].sum() / at["H1 2025"].sum() - 1) * 100
+        fig = ch.bar_change(at, f"Where demand is growing (Ajman overall {overall:+.0f}%)",
+                            area["finding_en"], height=430)
+        fig.add_vline(x=overall, line=dict(color=ch.MUTED, dash="dot", width=1.5))
+        fig.add_annotation(x=overall, y=1.0, yref="paper", text="Ajman overall", showarrow=False,
+                           yanchor="bottom", font=dict(size=11, color=ch.MUTED))
+        _plot(fig)
     with c2:
         vo = be.get_series(["virtual_office_share"], start="2024-01")
         vo = vo[~vo["is_partial"]]
@@ -62,7 +67,7 @@ def opportunities(lang):
                                    line=dict(color=ch.GOLD, width=3, shape="spline"),
                                    fillcolor="rgba(182,138,53,0.15)", hovertemplate="%{y:.0f}%"))
         ch.style(fig, "Most new Free Zone firms now start with a virtual office",
-                 "Setup type investors choose · share of new FZ registrations", 430, legend=False)
+                 "Share of new Free Zone registrations using a virtual office", 430, legend=False)
         fig.update_yaxes(ticksuffix="%", range=[0, 70])
         _plot(fig)
     zone = be.get_series(["new_reg_total"], group_type="zone", start="2024-01")
@@ -89,27 +94,25 @@ def watchouts(lang):
                                textposition="outside", cliponaxis=False, hovertemplate="%{x}: %{y:.0f}<extra></extra>"))
         fig.add_hline(y=100, line=dict(color=ch.MUTED, dash="dot", width=1))
         ch.style(fig, "Seasonality: slower months for new businesses",
-                 "Average monthly registrations (100 = average month) · Ramadan/Eid & summer dips", 330, legend=False)
+                 "Average registrations by month (100 = an average month)", 330, legend=False)
         fig.update_layout(hovermode="closest")
         _plot(fig)
-    st.markdown("#### What to keep in mind")
-    a, b, c = st.columns(3, gap="medium")
-    a.markdown('<div class="card"><h4>🌐 Current outlook</h4><div class="muted">Mainland activity slowed after the '
-               'regional disruption from March 2026. Our central scenario expects a gradual recovery over the next '
-               '6–12 months; the Free Zone has stayed resilient.</div></div>', unsafe_allow_html=True)
-    b.markdown('<div class="card"><h4>📅 Timing</h4><div class="muted">Ramadan/Eid and Jul–Aug are the slowest months. '
-               'Plan launch dates and cash flow around them.</div></div>', unsafe_allow_html=True)
-    c.markdown('<div class="card"><h4>💼 Costs & renewals</h4><div class="muted">Virtual offices keep fixed costs low. '
-               'Budget for annual licence renewal — DED offers reminders and, at times, instalments.</div></div>',
-               unsafe_allow_html=True)
-    st.caption("Indicative, based on public data; not financial advice.")
+    ui.section("What to keep in mind")
+    a, b, c = st.columns(3, gap="large")
+    a.markdown("**Current outlook.** Mainland activity slowed after the regional disruption that began in March 2026. "
+               "The central scenario expects a gradual recovery over the next 6 to 12 months. The Free Zone has held up.")
+    b.markdown("**Timing.** Ramadan, Eid, July and August are the slowest months. Plan launch dates and cash flow "
+               "around them.")
+    c.markdown("**Costs and renewals.** Virtual offices keep fixed costs low. Budget for the annual licence renewal; "
+               "DED sends reminders and sometimes offers instalments.")
+    st.caption("Indicative, based on public data. Not financial advice.")
 
 
 # ------------------------------------------------------------------ Advisor
 def advisor(lang):
     _title("advisor")
     from core.mocks import ACTIVITIES, AREAS  # catalogue lists (static)
-    with st.form("advisor"):
+    with st.form("advisor", border=False):
         c1, c2, c3, c4 = st.columns(4)
         activity = c1.selectbox("Business activity", ACTIVITIES, index=ACTIVITIES.index("Restaurants & cafes"))
         area = c2.selectbox("Area", AREAS, index=0)
@@ -119,7 +122,7 @@ def advisor(lang):
                              max_chars=400)
         go_ = st.form_submit_button("Get my outlook", type="primary")
     if not go_ and "inv_res" not in st.session_state:
-        st.info("Fill in your business and press **Get my outlook**.")
+        st.caption("Describe your business above, then press Get my outlook.")
         return
     if go_:
         act = be.group_differences("activity")["table"].set_index("group")
@@ -134,7 +137,7 @@ def advisor(lang):
                  "zone_change_pct": float(zt.loc[zone, "change_pct"]) if zone in zt.index else None,
                  "virtual_office_share_fz_pct": 59, "source": "Ajman DED & Free Zone open data, H1 2026 vs H1 2025"}
         profile = {"activity": activity, "area": area, "zone": zone, "size": size, "notes": notes}
-        with st.spinner("Building your outlook…"):
+        with st.spinner("Building your outlook"):
             res = ai.advise("investor", facts, profile, lang)
         st.session_state.inv_res = (activity, area, zone, facts, res, mon[mon["group"] == activity].sort_values("period"))
     activity, area, zone, facts, res, s = st.session_state.inv_res
@@ -167,13 +170,13 @@ def advisor(lang):
                                  name="Central outlook", mode="lines",
                                  line=dict(color=ch.GOLD, width=3, dash="dash", shape="spline"), hovertemplate="%{y:,.0f}"))
         ch.add_shock(fig, end=s["period"].max())
-        ch.style(fig, f"{activity}: demand outlook in Ajman", "New licences per month · sector-level, not your business", 400)
+        ch.style(fig, f"{activity}: demand outlook in Ajman",
+                 "New licences per month for the whole sector, not a forecast of your business", 400)
         fig.update_yaxes(tickformat=",")
         _plot(fig)
     with c2:
-        with st.container(border=True):
-            st.markdown(res["text"])
-        st.caption(f"Engine: {res['engine']} · facts used: " + "; ".join(res["cited_facts"]))
+        st.markdown(res["text"])
+        st.caption(f"Engine: {res['engine']}. Facts used: " + "; ".join(res["cited_facts"]))
 
 
 PAGES = {"opportunities": opportunities, "watchouts": watchouts, "advisor": advisor}

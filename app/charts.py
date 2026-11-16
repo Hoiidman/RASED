@@ -44,8 +44,8 @@ def add_shock(fig: go.Figure, end: str = "2027-12", label: str = "Regional disru
                   fillcolor="rgba(200,16,46,0.06)", line_width=0, layer="below")
     fig.add_shape(type="line", xref="x", yref="paper", x0=x0, x1=x0, y0=0, y1=1,
                   line=dict(color=RED, width=1, dash="dot"))
-    fig.add_annotation(x=x0, y=1, xref="x", yref="paper", text=label, showarrow=False, xanchor="left",
-                       yanchor="top", xshift=6, font=dict(size=11, color=RED))
+    fig.add_annotation(x=x0, y=1, xref="x", yref="paper", text=label, showarrow=False, xanchor="right",
+                       yanchor="top", xshift=-6, font=dict(size=11, color=RED))
     return fig
 
 
@@ -84,7 +84,9 @@ def bar_change(tab: pd.DataFrame, title: str, subtitle: str = "", height: int | 
     t = tab.sort_values("change_pct")
     cols = [GREEN if v >= 0 else RED for v in t["change_pct"]]
     fig = go.Figure(go.Bar(x=t["change_pct"], y=t["group"], orientation="h", marker_color=cols,
-                           text=[f"{v:+.0f}%" for v in t["change_pct"]], textposition="outside",
+                           text=[f"{v:+.0f}%" for v in t["change_pct"]],
+                           textposition=["outside" if v >= 0 else "inside" for v in t["change_pct"]],
+                           insidetextanchor="start", textfont=dict(color=[BLACK if v >= 0 else "white" for v in t["change_pct"]]),
                            cliponaxis=False, hovertemplate="%{y}: %{x:+.1f}%<extra></extra>"))
     style(fig, title, subtitle, height or max(260, 46 * len(t) + 90), legend=False)
     fig.update_layout(hovermode="closest")
@@ -100,6 +102,31 @@ def sparkline(values, color=GOLD, height=60) -> go.Figure:
                       plot_bgcolor="rgba(0,0,0,0)", showlegend=False)
     fig.update_xaxes(visible=False)
     fig.update_yaxes(visible=False)
+    return fig
+
+
+def alert_chart(s: pd.DataFrame, period: str, color: str, unit: str = "") -> go.Figure:
+    """Small chart for an alert: series, 'typical level' line, alert point highlighted."""
+    s = s[~s["is_partial"]].sort_values("period")
+    x = dt(s["period"])
+    typical = s["value"].iloc[: max(len(s) // 3, 3)].mean()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x, y=s["value"], mode="lines", line=dict(color=BLACK, width=2.5, shape="spline"),
+                             name="Actual", hovertemplate="%{y:,.1f}" + unit))
+    fig.add_hline(y=typical, line=dict(color=MUTED, dash="dash", width=1.2),
+                  annotation_text="typical level", annotation_position="top left",
+                  annotation_font=dict(size=11, color=MUTED))
+    hit = s[s["period"] == period]
+    if not hit.empty:
+        hx = dt(hit["period"]).iloc[0]
+        fig.add_trace(go.Scatter(x=[hx], y=hit["value"], mode="markers+text", text=["alert"],
+                                 textposition="top center", textfont=dict(color=color, size=12),
+                                 marker=dict(color=color, size=13, line=dict(color="white", width=2)),
+                                 name="Alert", hoverinfo="skip"))
+    style(fig, "", "", 230, legend=False)
+    fig.update_layout(margin=dict(l=10, r=10, t=20, b=10), hovermode="closest")
+    if unit == "%":
+        fig.update_yaxes(ticksuffix="%")
     return fig
 
 

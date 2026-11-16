@@ -15,9 +15,11 @@ MODEL = "claude-opus-5-5"
 SYSTEM = (
     "You are RASED, an economic early-warning analyst for Ajman's Department of Economic Development. "
     "Use only the facts in FACTS_JSON. Quote numbers exactly with their source and period. "
-    "If a fact is missing, say so. Licence data is not GDP or FDI — call it a 'licence-implied activity signal'. "
+    "If a fact is missing, say so. Licence data is not GDP or FDI; call it a 'licence-implied activity signal'. "
     "Give suggestions as options with trade-offs, not orders. Use neutral language on regional events "
-    "('regional disruption'). Be concise: short headed bullet points, max ~180 words. Answer in {lang}."
+    "('regional disruption'). Write plain, direct prose a non-specialist can read, at most about 180 words. "
+    "Use a short numbered list only for suggestions. No emoji, no em dashes, no 'Label:' bullet patterns. "
+    "Answer in {lang}."
 )
 
 MODE_TASK = {
@@ -79,19 +81,20 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
         comp = c("area_competition", f"New businesses in {area} (last 12 months)")
         lvl = f.get("competition_level", "moderate")
         zone_note = c("zone_change_pct", f"{zone} registrations change (H1 2026, %)")
+        growing = f.get("sector_growth_pct", 0) >= 0
         text = (
-            f"**Outlook for {act} in {area} ({zone})**\n\n"
-            f"- **Demand trend:** {act} registrations changed **{g}%** year-on-year — "
-            f"{'a growing segment' if f.get('sector_growth_pct', 0) >= 0 else 'a cooling segment; differentiate clearly'}.\n"
-            f"- **Competition:** **{comp}** new businesses registered in {area} over the last 12 months → **{lvl}** competition.\n"
-            f"- **Zone:** {zone} registrations changed **{zone_note}%** in H1 2026.\n\n"
-            f"**Risks:** regional disruption since Mar 2026 is still weighing on mainland demand; "
-            f"Ramadan/Eid months typically see 15–30% fewer new registrations.\n\n"
-            f"**Suggestions**\n"
-            f"1. {'Consider a Free Zone virtual-office setup to keep fixed costs low while demand recovers' if zone == 'Mainland' else 'Start with a flexi-desk or virtual office — 59% of FZ firms now do'}.\n"
-            f"2. {'Pick a micro-location with fewer competitors than ' + area if lvl == 'high' else area + ' has room for new entrants — move early'}.\n"
-            f"3. Time your opening outside Ramadan and plan cash for the slow summer months (Jul–Aug).\n\n"
-            f"*Indicative, based on public data; not financial advice.*"
+            f"#### {act} in {area}, {zone}\n\n"
+            f"{act} registrations changed {g}% in the first half of 2026 compared with a year earlier, "
+            f"{'so demand is growing' if growing else 'so the segment is cooling and you will need a clear point of difference'}. "
+            f"{comp} new businesses registered in {area} over the last 12 months, which means {lvl} competition. "
+            f"{zone} registrations as a whole changed {zone_note}% over the same period.\n\n"
+            f"The main risk is that the regional disruption since March 2026 is still holding back mainland demand. "
+            f"Ramadan and Eid months also usually see 15 to 30% fewer new registrations.\n\n"
+            f"What you could do:\n\n"
+            f"1. {'Consider a Free Zone virtual-office setup to keep fixed costs low while demand recovers' if zone == 'Mainland' else 'Start with a flexi-desk or virtual office, as 59% of new Free Zone firms now do'}.\n"
+            f"2. {'Look for a spot in ' + area + ' with fewer direct competitors nearby' if lvl == 'high' else area + ' still has room for new entrants, so opening early helps'}.\n"
+            f"3. Open outside Ramadan and keep cash aside for the slow summer months.\n\n"
+            f"Indicative, based on public data. Not financial advice."
         )
         return text, cited
 
@@ -101,19 +104,16 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
         vo = c("virtual_office_share", "Virtual-office share of FZ registrations (%)")
         ml = c("mainland_change_pct", "Mainland registrations H1 2026 vs H1 2025 (%)")
         text = (
-            "**1. Protect renewals (highest impact)**\n"
-            f"- *Why:* renewal rate is {rr}%; each +1 pt keeps ≈ {lever} businesses.\n"
-            "- *How:* targeted renewal reminders, fee instalments, call-centre outreach 30 days before expiry.\n"
-            "- *Measure:* monthly renewal rate vs 95.3% target.\n\n"
-            "**2. Support mainland recovery**\n"
-            f"- *Why:* mainland registrations changed {ml}% in H1 2026 during the regional disruption.\n"
-            "- *How:* extend fee/fine waivers 3 months; fast-track SME licensing.\n"
-            "- *Measure:* monthly mainland registrations vs scenario B.\n\n"
-            "**3. Convert virtual offices into physical presence**\n"
-            f"- *Why:* virtual offices are {vo}% of Free Zone registrations — lower local footprint.\n"
-            "- *How:* rent incentives / co-working bundles for firms that upgrade.\n"
-            "- *Measure:* virtual-office share and their renewal rate.\n\n"
-            "*Options with trade-offs for DED to decide — licence data is a signal, not GDP.*"
+            f"1. **Protect renewals.** This has the largest effect. The renewal rate is {rr}%, and each extra point "
+            f"keeps about {lever} businesses. Targeted reminders, fee instalments and calls 30 days before expiry "
+            "would help. Track the monthly renewal rate against the 95.3% target.\n"
+            f"2. **Support the mainland recovery.** Mainland registrations changed {ml}% in the first half of 2026. "
+            "Extending the fee and fine waivers by 3 months and fast-tracking SME licences are two options. "
+            "Track monthly mainland registrations against scenario B.\n"
+            f"3. **Turn virtual offices into physical premises.** Virtual offices are {vo}% of new Free Zone "
+            "registrations, which means a smaller local footprint. Rent incentives or co-working bundles could "
+            "encourage firms to move. Track the virtual-office share and these firms' renewal rate.\n\n"
+            "These are options for DED to weigh, each with costs. Licence data is a signal, not GDP."
         )
         return text, cited
 

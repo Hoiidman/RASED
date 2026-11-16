@@ -25,10 +25,10 @@ _HIGH = {"01": 1.10, "10": 1.05, "12": 1.08, "07": 0.90, "08": 0.88}
 ACTIVITIES = ["General trading", "Restaurants & cafes", "Construction & contracting",
               "Professional services", "Retail shops", "Real estate", "IT & e-commerce",
               "Manufacturing", "Beauty & personal care", "Logistics & transport"]
-_ACT_TREND = [-0.10, 0.30, -0.18, 0.12, -0.05, 0.03, 0.28, 0.08, 0.10, 0.15]
+_ACT_TREND = [-0.04, 0.40, -0.12, 0.34, -0.02, 0.06, 0.48, 0.12, 0.16, 0.36]
 AREAS = ["Al Nuaimia", "Al Jurf", "Al Rashidiya", "Al Rawda", "Industrial Area",
          "Al Hamidiya", "Mushairef", "Al Zahra", "Al Bustan", "Al Mowaihat"]
-_AREA_TREND = [0.26, 0.14, -0.06, 0.09, 0.11, 0.18, -0.02, 0.05, -0.08, 0.12]
+_AREA_TREND = [0.36, 0.40, -0.04, 0.14, 0.30, 0.46, 0.02, 0.10, -0.06, 0.22]
 
 
 def _rng(salt: int = 0):
@@ -246,6 +246,10 @@ def group_differences(dim: str) -> dict:
     tab["share_2026_pct"] = (tab["H1 2026"] / tab["H1 2026"].sum() * 100).round(1)
     tab = tab[tab["H1 2025"] >= 5].sort_values("change_pct", ascending=False).reset_index(drop=True)
     en, ar = _FINDINGS[dim]
+    if dim in ("area", "activity") and len(tab) >= 4:  # keep the caption consistent with the numbers
+        top, bot = tab["group"].tolist()[:2], tab["group"].tolist()[-2:]
+        en = f"{top[0]} and {top[1]} grow fastest; {bot[0]} and {bot[1]} are cooling."
+        ar = f"{top[0]} و{top[1]} الأسرع نمواً؛ {bot[0]} و{bot[1]} في تباطؤ."
     return {"table": tab, "finding_en": en, "finding_ar": ar}
 
 
@@ -256,14 +260,14 @@ _ALERTS = [
      "expected": "≤ 45%", "actual": "59%", "severity": "high", "rule": "mix_shift",
      "possible_factors": [
          {"text": "Higher office rents push new firms to virtual setups", "source": "Drivers monitor (hypothesis)", "date": "2026"},
-         {"text": "Regional disruption from Mar 2026 – firms keep costs flexible", "source": "events.yaml", "date": "2026-03"},
+         {"text": "Regional disruption since Mar 2026, so firms keep costs flexible", "source": "events.yaml", "date": "2026-03"},
          {"text": "Visa-linked Free Lancer packages", "source": "events.yaml", "date": "2025"}],
      "actions": ["Outreach programme to convert virtual-office firms to physical premises (rent incentive)",
-                 "Track renewal rate of virtual-office firms separately – higher lapse risk",
+                 "Track the renewal rate of virtual-office firms separately, since they are more likely to lapse",
                  "Bundle co-working space offers with FZ packages"],
      "status": "open"},
     {"id": "AL-002", "indicator": "new_reg_mainland", "group": "Mainland", "period": "2026-06",
-     "what_happened": "Mainland new registrations fell 28% vs H1 2025 – below the 80% forecast band.",
+     "what_happened": "Mainland new registrations fell 28% from H1 2025, below the 80% forecast band.",
      "expected": "~640 / month", "actual": "~430 / month", "severity": "high", "rule": "off_forecast",
      "possible_factors": [
          {"text": "Regional disruption from Mar 2026", "source": "events.yaml", "date": "2026-03"},
@@ -273,7 +277,7 @@ _ALERTS = [
                  "Weekly monitoring of mainland registrations until recovery"],
      "status": "open"},
     {"id": "AL-003", "indicator": "new_reg_total", "group": "Construction & contracting", "period": "2026-09",
-     "what_happened": "Construction registrations down 31% YoY – beyond the 5th percentile of history.",
+     "what_happened": "Construction registrations are down 31% on last year, an unusually large fall.",
      "expected": "−5% to +12% YoY", "actual": "−31% YoY", "severity": "medium", "rule": "unusual_change",
      "possible_factors": [
          {"text": "Project pipeline slowdown during regional disruption", "source": "news (context only)", "date": "2026-08"}],
@@ -281,7 +285,7 @@ _ALERTS = [
                  "Prioritise permit processing for active construction projects"],
      "status": "open"},
     {"id": "AL-004", "indicator": "renewal_rate", "group": "Virtual-office firms", "period": "2026-09",
-     "what_happened": "Renewal rate among virtual-office firms at 91.2% – 1.6 pts below its 3-year average.",
+     "what_happened": "The renewal rate among virtual-office firms is 91.2%, 1.6 points below its 3-year average.",
      "expected": "≥ 92.8%", "actual": "91.2%", "severity": "medium", "rule": "renewal_pressure",
      "possible_factors": [
          {"text": "Smaller firms more exposed to the 2026 slowdown", "source": "Drivers monitor (hypothesis)", "date": "2026"}],
@@ -290,7 +294,7 @@ _ALERTS = [
                  "Call-centre outreach to firms 30 days before expiry"],
      "status": "open"},
     {"id": "AL-005", "indicator": "new_reg_total", "group": "IT & e-commerce", "period": "2026-10",
-     "what_happened": "IT & e-commerce registrations up 34% YoY – above the 95th percentile (positive).",
+     "what_happened": "IT & e-commerce registrations are up 34% on last year, an unusually strong rise.",
      "expected": "+5% to +20% YoY", "actual": "+34% YoY", "severity": "low", "rule": "unusual_change",
      "possible_factors": [{"text": "Shift to online business models", "source": "Drivers monitor (hypothesis)", "date": "2026"}],
      "actions": ["Promote Ajman as a digital-business hub", "Fast-lane e-commerce licences"],
@@ -320,7 +324,7 @@ def get_drivers() -> list[dict]:
         {"id": "corp_tax", "name": "Corporate tax", "hypothesis": "Tax level changes openings / closures",
          "proxy": "UAE CT fixed at 9% since June 2023; qualifying FZ income 0%", "source": "event date only",
          "test": "Before/after June 2023 on cancellations & legal-form mix", "status": "partial",
-         "result": "One-off event + Free Zone advantage — not a dial.", "chart": None},
+         "result": "A one-off event plus a Free Zone advantage, not a setting that moves.", "chart": None},
         {"id": "visa", "name": "Visa / residency rules", "hypothesis": "Easier residency → more freelancers & virtual offices",
          "proxy": "FZ Free Lancer licences, virtual-office share", "source": "fz_monthly",
          "test": "Trend + event dates for visa changes", "status": "ready",
