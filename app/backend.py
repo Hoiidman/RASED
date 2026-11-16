@@ -132,7 +132,30 @@ def get_changes(since=None): return _call("get_changes", since)
 
 
 @st.cache_data(ttl=_SLOW, show_spinner=False)
-def get_context(period, sector=None): return _call("get_context", period, sector)
+def get_context(period, sector=None):
+    """Live context (core/context.py) even in mock mode: it doesn't depend on the engine.
+    No live headlines -> mock sample headlines, labelled as samples."""
+    try:
+        from core import context as live
+        ctx = live.get_context(period, sector)
+        ENGINE_USED["get_context"] = "real"
+    except Exception as e:  # noqa: BLE001
+        ENGINE_USED["get_context"] = f"mock (real failed: {type(e).__name__})"
+        return mocks.get_context(period, sector)
+    if not ctx.get("news"):
+        ctx["news"], ctx["news_live"] = mocks.get_context(period, sector)["news"], False
+    return ctx
+
+
+def prefetch_context(pairs):
+    """Warm the on-disk news cache for several alerts in parallel, so the page doesn't wait on each."""
+    try:
+        from concurrent.futures import ThreadPoolExecutor
+        from core import context as live
+        with ThreadPoolExecutor(max_workers=6) as ex:
+            list(ex.map(lambda p: live.get_context(*p), set(pairs), timeout=20))
+    except Exception:  # noqa: BLE001 - best effort
+        pass
 
 
 def acknowledge(alert_id, user):

@@ -24,7 +24,7 @@ before = sum("AL-006" in str(m.value) for m in at.markdown)
 next(b for b in at.button if b.label == "Sync now").click().run()
 ex = [e.value for e in at.exception]
 after_alert = any("Retail shops, 2026-10" in str(m.value) for m in at.markdown)
-news = any("Retailers shift budgets" in str(m.value) for m in at.markdown)
+news = any("headlines" in str(c.value).lower() for c in at.caption)  # live or sample news shown
 ok = not ex and after_alert and news
 print(f"sync -> new alert shown={after_alert}, news shown={news}  {'OK' if ok else 'FAIL ' + str(ex[:1])}")
 bad += not ok

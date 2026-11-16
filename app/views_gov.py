@@ -119,8 +119,10 @@ def _context_block(a):
                         unsafe_allow_html=True)
         if not news:
             st.caption("No related headlines found for this period.")
-        if ctx.get("news_live") is False and news:
-            st.caption("Sample headlines. The live news feed (GDELT) plugs in here once connected.")
+        if ctx.get("news_live") and news:
+            st.caption(f"Live headlines via {ctx.get('news_source') or 'news search'}, filtered to business news.")
+        elif news:
+            st.caption("Sample headlines: the live news search could not be reached.")
     with c2:
         ui.section("Events")
         for e in ctx.get("events") or []:
@@ -141,6 +143,7 @@ def alerts(lang):
     sev = st.segmented_control("Severity", ["All", "high", "medium", "low"], default="All")
     items = be.get_alerts(None if sev in (None, "All") else sev)
     items = sorted(items, key=lambda a: not a.get("new", False))  # alerts from the latest sync first
+    be.prefetch_context([(a["period"], a.get("sector") or a["group"].split(" · ")[0]) for a in items])
     if not items:
         st.success("No alerts at this severity.")
     for a in items:
