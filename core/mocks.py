@@ -368,26 +368,79 @@ def sync_status() -> list[dict]:
     ]
 
 
+# Raised by the first "Sync now" in the demo: shows a risk appearing after a data update.
+_SYNC_ALERT = {
+    "id": "AL-006", "indicator": "new_reg_total", "group": "Retail shops", "period": "2026-10",
+    "what_happened": "Retail shop registrations fell 24% on last year in October, after the latest DED data update.",
+    "expected": "-5% to +10% YoY", "actual": "-24% YoY", "severity": "medium", "rule": "unusual_change",
+    "possible_factors": [
+        {"text": "Shoppers moving online (IT & e-commerce registrations are up 34%)", "source": "RASED data", "date": "2026-10"},
+        {"text": "Regional disruption since Mar 2026 holding back consumer spending", "source": "events calendar", "date": "2026-03"}],
+    "actions": ["Offer retail licence holders an e-commerce add-on at reduced fee",
+                "Check renewal intentions of retail shops due in the next 3 months"],
+    "status": "open", "new": True,
+}
+
+
 def run_sync(force: bool = False) -> dict:
+    added = 0
+    if not any(a["id"] == _SYNC_ALERT["id"] for a in _ALERTS):
+        _ALERTS.append(dict(_SYNC_ALERT))
+        added = 1
     entry = {"time": datetime.now().isoformat(timespec="minutes"), "dataset": "ded_licences",
-             "rows_added": 38, "indicators": ["new_reg_total"], "new_alerts": 1}
+             "rows_added": 38, "indicators": ["new_reg_total"], "new_alerts": added,
+             "alert_ids": [_SYNC_ALERT["id"]] if added else []}
     _CHANGES.insert(0, entry)
-    return {"changed": ["ded_licences"], "new_alerts": 1}
+    return {"changed": ["ded_licences"], "new_alerts": added}
 
 
 def get_changes(since=None) -> list[dict]:
     return [c for c in _CHANGES if since is None or c["time"] >= since]
 
 
+# Context for alerts. Events are a real calendar; headlines are SAMPLES standing in for the
+# GDELT news connector (core/context.py, Agent A) and are labelled as samples in the UI.
+_EVENTS = [
+    {"name": "Ramadan", "start": "2025-03-01", "end": "2025-03-30", "kind": "season"},
+    {"name": "Eid al-Fitr", "start": "2025-03-30", "end": "2025-04-02", "kind": "season"},
+    {"name": "Corporate tax first filing deadline for many firms", "start": "2025-09-30", "end": "2025-09-30", "kind": "policy"},
+    {"name": "Ramadan", "start": "2026-02-18", "end": "2026-03-19", "kind": "season"},
+    {"name": "Eid al-Fitr", "start": "2026-03-20", "end": "2026-03-22", "kind": "season"},
+    {"name": "Regional disruption begins", "start": "2026-03-01", "end": None, "kind": "shock"},
+    {"name": "DED fee and fine waivers", "start": "2026-03-15", "end": "2026-06-30", "kind": "policy"},
+    {"name": "Eid al-Adha", "start": "2026-05-26", "end": "2026-05-29", "kind": "season"},
+    {"name": "Summer slowdown", "start": "2026-07-01", "end": "2026-08-31", "kind": "season"},
+]
+_NEWS = [
+    ("2026-03-04", "Regional disruption weighs on Gulf trade and shipping", None),
+    ("2026-03-18", "Ajman DED announces fee and fine waivers for businesses", None),
+    ("2026-05-20", "UAE small firms turn to flexible and virtual office setups", "Free Zone"),
+    ("2026-05-28", "Free zones across the UAE extend licence packages for freelancers", "Free Zone"),
+    ("2026-06-10", "Construction project starts slow across the northern emirates", "Construction & contracting"),
+    ("2026-08-14", "Contractors report delayed payments as projects pause", "Construction & contracting"),
+    ("2026-09-02", "Smaller firms in the UAE cite cash flow pressure at renewal time", "Virtual-office firms"),
+    ("2026-09-22", "Online sales keep growing in the UAE as shoppers move to apps", "IT & e-commerce"),
+    ("2026-10-08", "UAE e-commerce platforms report record merchant sign-ups", "IT & e-commerce"),
+    ("2026-10-15", "Mall footfall still below last year in parts of the UAE", "Retail shops"),
+    ("2026-10-27", "Retailers shift budgets from shop space to online stores", "Retail shops"),
+]
+
+
 def get_context(period: str, sector=None) -> dict:
+    p = pd.Period(period[:7], "M")
+    lo, hi = str(p - 3), str(p + 1)  # three months before to one month after the alert month
+    news = [{"title": t, "source": "Sample headline (live news feed not connected)", "date": d,
+             "sector": s or "General"}
+            for d, t, s in _NEWS if lo <= d[:7] <= hi and (s is None or sector is None or s == sector)]
+    events = [e for e in _EVENTS if e["start"][:7] <= hi and (e["end"] or "9999")[:7] >= lo]
     return {
-        "news": [{"title": "Regional disruption weighs on Gulf trade flows", "source": "GDELT (mock)", "date": "2026-03-12"},
-                 {"title": "UAE SMEs shift to flexible office models", "source": "GDELT (mock)", "date": "2026-05-20"}],
-        "macro": [{"indicator": "UAE GDP growth", "value": 4.0, "unit": "%", "period": "2025", "source": "World Bank"},
-                  {"indicator": "UAE inflation", "value": 2.1, "unit": "%", "period": "2025", "source": "World Bank"}],
-        "events": [{"name": "Ramadan", "start": "2026-02-18", "end": "2026-03-19"},
-                   {"name": "Regional disruption begins", "start": "2026-03-01", "end": None},
-                   {"name": "DED fee & fine waivers", "start": "2026-03-15", "end": "2026-06-30"}],
+        "news": sorted(news, key=lambda n: n["date"], reverse=True)[:5],
+        "news_live": False,
+        "macro": [{"indicator": "UAE real GDP growth", "value": 4.0, "unit": "%", "period": "2025",
+                   "source": "World Bank (sample value)"},
+                  {"indicator": "UAE consumer price inflation", "value": 2.1, "unit": "%", "period": "2025",
+                   "source": "World Bank (sample value)"}],
+        "events": events,
     }
 
 

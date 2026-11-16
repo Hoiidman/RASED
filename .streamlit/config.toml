@@ -1,9 +1,12 @@
+# UAE Design System (designsystem.gov.ae/guidelines/colour-system):
+# interactive gold = AEGold 600 (#B68A35 fails AA contrast with white text), text = AEBlack 800 on #FCFCFC.
 [theme]
 base = "light"
-primaryColor = "#B68A35"
-backgroundColor = "#FFFFFF"
+primaryColor = "#92722A"
+backgroundColor = "#FCFCFC"
 secondaryBackgroundColor = "#F9F7ED"
 textColor = "#232528"
+baseFontSize = 16
 
 [server]
 headless = true

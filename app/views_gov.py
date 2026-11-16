@@ -56,7 +56,7 @@ def overview(lang):
             "New business registrations per month · Nov 2026 is still partial and not shown", height=430))
     with right:
         ui.section("Early warnings")
-        for a in be.get_alerts()[:5]:
+        for a in sorted(be.get_alerts(), key=lambda a: not a.get("new", False))[:5]:
             ui.alert_card(a)
         st.caption("Factors and suggested actions are in the Early warnings tab.")
 
@@ -83,10 +83,64 @@ def _alert_fig(a):
         return None
 
 
+def _updates_feed():
+    """What changed in recent data syncs, and which alerts each sync raised."""
+    changes = be.get_changes()[:4]
+    if not changes:
+        return
+    ui.section("Latest data updates")
+    rows = []
+    for c in changes:
+        n = c.get("new_alerts", 0)
+        rows.append(f"<b>{ui.ago(c['time'])}</b>: {c['dataset']} added {c['rows_added']:,} rows "
+                    f"({', '.join(c.get('indicators', []))})"
+                    + (f". <b style='color:{ch.RED_TXT}'>{n} new alert{'s' if n != 1 else ''}</b>" if n else
+                       ". No new alerts."))
+    st.markdown("<div class='r-meta'>" + "<br>".join(rows) + "</div>", unsafe_allow_html=True)
+
+
+def _context_block(a):
+    """News, events and wider-economy figures around the alert month. Context, not causes."""
+    sector = a.get("sector") or a["group"].split(" · ")[0]
+    try:
+        ctx = be.get_context(a["period"], sector)
+    except Exception:  # noqa: BLE001 - context is optional
+        return
+    st.markdown(f"**What was happening around {pd.Period(a['period'], 'M').strftime('%B %Y')}**  \n"
+                "<span class='muted'>News, events and the wider economy at the time. These are possible "
+                "influences for an analyst to check, not proven causes.</span>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([1.4, 1, 0.8], gap="large")
+    with c1:
+        ui.section("In the news")
+        news = ctx.get("news") or []
+        for n in news:
+            title = f"[{n['title']}]({n['url']})" if n.get("url") else n["title"]
+            st.markdown(f"{title}  \n<span class='muted'>{n.get('source', '')}, {n.get('date', '')}</span>",
+                        unsafe_allow_html=True)
+        if not news:
+            st.caption("No related headlines found for this period.")
+        if ctx.get("news_live") is False and news:
+            st.caption("Sample headlines. The live news feed (GDELT) plugs in here once connected.")
+    with c2:
+        ui.section("Events")
+        for e in ctx.get("events") or []:
+            end = e.get("end")
+            when = e["start"] if end == e["start"] else e["start"] + (f" to {end}" if end else " onwards")
+            st.markdown(f"{e['name']}  \n<span class='muted'>{when}</span>", unsafe_allow_html=True)
+    with c3:
+        ui.section("Wider economy")
+        for m in ctx.get("macro") or []:
+            st.markdown(f"{m['indicator']}: **{m['value']}{m.get('unit', '')}**  \n"
+                        f"<span class='muted'>{m.get('period', '')}, {m.get('source', '')}</span>",
+                        unsafe_allow_html=True)
+
+
 def alerts(lang):
     _title("alerts")
+    _updates_feed()
     sev = st.segmented_control("Severity", ["All", "high", "medium", "low"], default="All")
     items = be.get_alerts(None if sev in (None, "All") else sev)
+    items = sorted(items, key=lambda a: not a.get("new", False))  # alerts from the latest sync first
     if not items:
         st.success("No alerts at this severity.")
     for a in items:
@@ -95,6 +149,7 @@ def alerts(lang):
             fig = _alert_fig(a)
             if fig is not None:
                 _plot(fig)
+            _context_block(a)
             c1, c2 = st.columns(2, gap="large")
             with c1:
                 st.markdown("**Possible contributing factors**  \n<span class='muted'>Context only. An analyst should "

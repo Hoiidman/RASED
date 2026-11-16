@@ -4,12 +4,18 @@ from __future__ import annotations
 import pandas as pd
 import plotly.graph_objects as go
 
-GOLD, GOLD_DARK, GOLD_LIGHT, GOLD_BG = "#B68A35", "#92722A", "#F2ECCF", "#F9F7ED"
-BLACK, MUTED, GREEN, RED, GREY = "#232528", "#5F6368", "#006B48", "#C8102E", "#B9BBBE"
-SERIES = [GOLD, BLACK, GREEN, GOLD_DARK, GREY, "#C9A86A", "#4E5257", "#3E8E6E"]
+# UAE Design System colour tokens (designsystem.gov.ae/guidelines/colour-system)
+GOLD, GOLD_DARK, GOLD_LIGHT, GOLD_BG = "#B68A35", "#92722A", "#F2ECCF", "#F9F7ED"  # AEGold 500/600/100/50
+BLACK, MUTED, GREY = "#232528", "#5F646D", "#C3C6CB"                               # AEBlack 800/500/200
+PAGE_BG = "#FCFCFC"
+# Status: DS 500 shades for chart marks (3:1 graphics contrast); darker tones for text (4.5:1 AA)
+GREEN, RED = "#4A9D5C", "#EA4F49"            # AEGreen 500, AERed 500 (graphics)
+GREEN_TXT, RED_TXT = "#2F6B3B", "#B42318"    # darker text tones for AA contrast on white
+SERIES = [GOLD, BLACK, GREEN, GOLD_DARK, GREY, "#CBA344", "#4B4F58", "#3E8E6E"]
 SCEN_COL = {"A": RED, "B": GOLD, "C": GREEN, "custom": BLACK}
 SCEN_NAME = {"A": "A · slow recovery", "B": "B · central", "C": "C · fast recovery", "custom": "Your scenario"}
-FONT = "Roboto, 'Noto Kufi Arabic', 'Segoe UI', Arial, sans-serif"  # UAE Design System body fonts
+FONT = "Roboto, 'Noto Kufi Arabic', 'Segoe UI', Arial, sans-serif"  # DS body fonts
+HEAD_FONT = "Inter, Alexandria, 'Segoe UI', Arial, sans-serif"      # DS heading fonts
 SHOCK_START = "2026-03"
 
 
@@ -20,21 +26,23 @@ def dt(periods) -> pd.Series:
 
 
 def style(fig: go.Figure, title: str = "", subtitle: str = "", height: int = 380, legend: bool = True) -> go.Figure:
-    t = f"<b>{title}</b>" + (f"<br><span style='font-size:13px;color:{MUTED}'>{subtitle}</span>" if subtitle else "")
+    t = f"<b>{title}</b>" + (f"<br><span style='font-size:14px;color:{MUTED};font-family:{FONT}'>{subtitle}</span>"
+                             if subtitle else "")
     fig.update_layout(
-        title=dict(text=t, x=0, xanchor="left", y=0.97, yanchor="top", font=dict(size=17, color=BLACK)),
+        title=dict(text=t, x=0, xanchor="left", y=0.97, yanchor="top",
+                   font=dict(family=HEAD_FONT, size=18, color=BLACK)),
         font=dict(family=FONT, size=13, color=BLACK),
-        paper_bgcolor="white", plot_bgcolor="white", height=height,
-        margin=dict(l=10, r=20, t=78 if subtitle else 56, b=10),
+        paper_bgcolor=PAGE_BG, plot_bgcolor=PAGE_BG, height=height,
+        margin=dict(l=10, r=20, t=84 if subtitle else 60, b=10),
         showlegend=legend,
         legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="left", x=0, bgcolor="rgba(0,0,0,0)",
                     font=dict(size=12)),
         hoverlabel=dict(bgcolor="white", bordercolor=GOLD, font=dict(family=FONT, color=BLACK)),
         hovermode="x unified",
     )
-    fig.update_xaxes(showgrid=False, showline=True, linecolor="#D9D9D9", ticks="outside", tickcolor="#D9D9D9",
+    fig.update_xaxes(showgrid=False, showline=True, linecolor="#E1E3E5", ticks="outside", tickcolor="#E1E3E5",
                      tickfont=dict(color=MUTED))
-    fig.update_yaxes(showgrid=True, gridcolor="#F0F0F0", zeroline=False, showline=False, tickfont=dict(color=MUTED))
+    fig.update_yaxes(showgrid=True, gridcolor="#EFEFEF", zeroline=False, showline=False, tickfont=dict(color=MUTED))
     return fig
 
 
@@ -69,7 +77,7 @@ def registrations_chart(df: pd.DataFrame, title: str, subtitle: str = "", height
         chg = (h26 / h25 - 1) * 100 if h25 else None
         fig.add_trace(go.Scatter(x=[x.iloc[-1]], y=[v[-1]], mode="markers", marker=dict(color=c, size=9),
                                  showlegend=False, hoverinfo="skip"))
-        lab = f"<b>{g}</b>" + (f"<br><span style='color:{GREEN if chg >= 0 else RED}'>{chg:+.0f}% H1 2026</span>"
+        lab = f"<b>{g}</b>" + (f"<br><span style='color:{GREEN_TXT if chg >= 0 else RED_TXT}'>{chg:+.0f}% H1 2026</span>"
                                if chg is not None else "")
         fig.add_annotation(x=x.iloc[-1], y=v[-1], text=lab, showarrow=False, xanchor="left", xshift=10,
                            align="left", font=dict(size=13, color=c))
