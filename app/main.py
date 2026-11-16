@@ -52,6 +52,10 @@ with st.sidebar:
     if lang == "ar":  # right-to-left text in the main area; charts keep left-to-right axes
         st.markdown("<style>.block-container{direction:rtl;text-align:right}"
                     ".block-container .js-plotly-plot,.block-container .stPlotlyChart{direction:ltr}"
+                    # each text block takes its direction from its own first letter, so English
+                    # sentences and numbers like +7.1% keep their punctuation in place inside RTL
+                    ".block-container p,.block-container li,.r-k-value,.r-k-delta,.r-k-note,.r-k-label,"
+                    ".r-alert-title,.r-alert-body,.r-meta,.page-q{unicode-bidi:plaintext}"
                     ".r-tag{margin-left:0;margin-right:14px}.r-title .r-ar{margin-left:0;margin-right:8px}</style>",
                     unsafe_allow_html=True)
     portal = st.radio(t["portal"], ["gov", "inv"], format_func=lambda k: t[k], key="portal")

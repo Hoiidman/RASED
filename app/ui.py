@@ -16,8 +16,16 @@ RULE = "#E6E1D3"
 
 CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;600&display=swap');
-html, body, [class*="css"], .stMarkdown, .stText {{ font-family: Inter, 'Noto Sans Arabic', 'Segoe UI', sans-serif; }}
+/* UAE Design System typography (designsystem.gov.ae/guidelines/typography):
+   body = Roboto (EN) + Noto Kufi Arabic (AR); headings = Inter (EN) + Alexandria (AR).
+   Latin font first in each stack, so Arabic glyphs fall through to the Arabic face. */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Inter:wght@500;600;700&family=Noto+Kufi+Arabic:wght@400;500;700&family=Alexandria:wght@500;600;700&display=swap');
+html, body, [class*="css"], .stMarkdown, .stText, input, textarea, button, select, label {{
+  font-family: Roboto, 'Noto Kufi Arabic', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif; }}
+.r-title, .page-q, .r-section, .r-k-value, .r-alert-title, h1, h2, h3, h4,
+button[data-baseweb="tab"] p, div[data-testid="stMetricValue"] {{
+  font-family: Inter, Alexandria, -apple-system, system-ui, 'Segoe UI', sans-serif !important; }}
+.r-ar {{ font-family: Alexandria, 'Noto Kufi Arabic', sans-serif !important; }}
 .block-container {{ padding-top: 1.4rem; padding-bottom: 3rem; max-width: 1400px; }}
 header[data-testid="stHeader"] {{ background: transparent; }}
 section[data-testid="stSidebar"] {{ background: {BLACK}; }}

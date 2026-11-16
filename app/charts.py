@@ -9,7 +9,7 @@ BLACK, MUTED, GREEN, RED, GREY = "#232528", "#5F6368", "#006B48", "#C8102E", "#B
 SERIES = [GOLD, BLACK, GREEN, GOLD_DARK, GREY, "#C9A86A", "#4E5257", "#3E8E6E"]
 SCEN_COL = {"A": RED, "B": GOLD, "C": GREEN, "custom": BLACK}
 SCEN_NAME = {"A": "A · slow recovery", "B": "B · central", "C": "C · fast recovery", "custom": "Your scenario"}
-FONT = "Inter, 'Segoe UI', 'Noto Sans Arabic', Arial, sans-serif"
+FONT = "Roboto, 'Noto Kufi Arabic', 'Segoe UI', Arial, sans-serif"  # UAE Design System body fonts
 SHOCK_START = "2026-03"
 
 

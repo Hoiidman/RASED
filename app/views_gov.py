@@ -124,41 +124,63 @@ def outlook(lang):
     rs = c1.slider("Recovery starts in (months)", 0, 12, 6)
     rl = c2.slider("Recovery takes (months)", 1, 18, 6)
     dp = c3.slider("Shock depth (% of current)", 0, 150, 100, step=10)
-    fc = be.get_forecast(ind, rs, rl, dp)
-    hist = be.get_series([ind], start="2024-01")
-    full = hist[~hist["is_partial"]]
+    fc_all = be.get_forecast(ind, rs, rl, dp)
+    hist_all = be.get_series([ind])
+    full_all = hist_all[~hist_all["is_partial"]]
+
+    # Date window: any range from the first month of history to the end of the forecast
+    months = sorted(set(full_all["period"]) | set(fc_all["period"]))
+    default_start = "2024-01" if "2024-01" in months else months[0]
+    w0, w1 = st.select_slider("Dates shown", options=months, value=(default_start, months[-1]),
+                              format_func=lambda p: pd.Period(p, "M").strftime("%b %Y"), key="outlook_window")
+    full = full_all[full_all["period"].between(w0, w1)]
+    fc = fc_all[fc_all["period"].between(w0, w1)]
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=ch.dt(full["period"]), y=full["value"], name="Actual", mode="lines",
-                             line=dict(color=ch.BLACK, width=3, shape="spline", smoothing=0.5),
-                             hovertemplate="%{y:,.0f}"))
+    if not full.empty:
+        fig.add_trace(go.Scatter(x=ch.dt(full["period"]), y=full["value"], name="Actual", mode="lines",
+                                 line=dict(color=ch.BLACK, width=3, shape="spline", smoothing=0.5),
+                                 hovertemplate="%{y:,.0f}"))
     cust = fc[fc["scenario"] == "custom"]
-    x = ch.dt(cust["period"])
-    fig.add_trace(go.Scatter(x=pd.concat([x, x[::-1]]), y=pd.concat([cust["hi"], cust["lo"][::-1]]),
-                             fill="toself", fillcolor="rgba(35,37,40,0.08)", line=dict(width=0),
-                             name="80% band (your scenario)", hoverinfo="skip"))
-    last_x, last_y = ch.dt(full["period"]).iloc[-1], full["value"].iloc[-1]
+    if not cust.empty:
+        x = ch.dt(cust["period"])
+        fig.add_trace(go.Scatter(x=pd.concat([x, x[::-1]]), y=pd.concat([cust["hi"], cust["lo"][::-1]]),
+                                 fill="toself", fillcolor="rgba(35,37,40,0.08)", line=dict(width=0),
+                                 name="80% band (your scenario)", hoverinfo="skip"))
+    # join each forecast line to the last actual month when both are in the window
+    join = (not full.empty and not fc.empty and full["period"].max() == full_all["period"].max())
     for s in ["A", "B", "C", "custom"]:
         d = fc[fc["scenario"] == s]
+        if d.empty:
+            continue
+        xs, ys = ch.dt(d["period"]), d["mean"]
+        if join:
+            xs = pd.concat([pd.Series([ch.dt(full["period"]).iloc[-1]]), xs])
+            ys = pd.concat([pd.Series([full["value"].iloc[-1]]), ys])
         fig.add_trace(go.Scatter(
-            x=pd.concat([pd.Series([last_x]), ch.dt(d["period"])]), y=pd.concat([pd.Series([last_y]), d["mean"]]),
-            name=ch.SCEN_NAME[s], mode="lines",
+            x=xs, y=ys, name=ch.SCEN_NAME[s], mode="lines",
             line=dict(color=ch.SCEN_COL[s], width=3.5 if s == "custom" else 2, dash="solid" if s == "custom" else "dash",
                       shape="spline", smoothing=0.5),
             hovertemplate="%{y:,.0f}"))
-    ch.add_shock(fig, end=full["period"].max())
+    if not full.empty and full["period"].max() >= ch.SHOCK_START:
+        ch.add_shock(fig, end=full["period"].max())
+    label = lambda p: pd.Period(p, "M").strftime("%b %Y")  # noqa: E731
     ch.style(fig, "Three recovery paths, plus the one set by your sliders",
-             "Monthly registrations, history and scenarios to Dec 2027", 460)
+             f"Monthly registrations, {label(w0)} to {label(w1)}", 460)
     fig.update_yaxes(tickformat=",")
     _plot(fig)
+
+    full, fc = full_all, fc_all  # the yearly totals below always use the full series
 
     actual_26 = full[full["period"].str.startswith("2026")]["value"].sum()
     rows = []
     for s in ["A", "B", "C", "custom"]:
         d = fc[fc["scenario"] == s]
+        in_win = d[d["period"].between(w0, w1)]
         rows.append({"Scenario": ch.SCEN_NAME[s],
                      "2026 total (actual Jan–Oct + forecast)": int(actual_26 + d[d["period"].str.startswith("2026")]["mean"].sum()),
-                     "2027 total": int(d[d["period"].str.startswith("2027")]["mean"].sum())})
+                     "2027 total": int(d[d["period"].str.startswith("2027")]["mean"].sum()),
+                     f"Forecast, {label(w0)} to {label(w1)}": int(in_win["mean"].sum())})
     c1, c2 = st.columns([1.4, 1], gap="large")
     with c1:
         st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch",
