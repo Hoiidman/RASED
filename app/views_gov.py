@@ -70,7 +70,15 @@ def _vo_share():
 
 # ------------------------------------------------------------------ Alerts
 def _alert_fig(a):
-    """Best-effort mini chart for an alert; None if the series isn't available."""
+    """Best-effort mini chart for an alert; None if the series isn't available. Cached per data version,
+    so the 25 alert charts are built once, not on every click on the page."""
+    return _alert_fig_cached(be.data_version(), a["indicator"], a["group"], a.get("group_type"), a["period"],
+                             a["severity"])
+
+
+@st.cache_data(ttl=24 * 3600, show_spinner=False)
+def _alert_fig_cached(v, indicator, group, group_type, period, severity):
+    a = {"indicator": indicator, "group": group, "group_type": group_type, "period": period, "severity": severity}
     try:
         ind, grp = a["indicator"], a["group"]
         start = None if ind == "renewal_rate" else "2025-01"
@@ -428,6 +436,9 @@ def export(lang):
     prev = be.get_series(ids, None if gt == "total" else gt, start, end)
     st.markdown(f"**Preview**, {len(prev):,} rows")
     st.dataframe(prev.head(200), hide_index=True, width="stretch", height=260)
+    st.caption("Columns: **period** is the month or year; **value** is the count or percentage; "
+               "**is_partial** is true for a month that is still in progress, so its count is incomplete. "
+               "Charts and forecasts leave partial months out; keep that in mind when comparing them.")
     req = (tuple(ids), gt, start, end, fmt)
     if st.button(f"Prepare {fmt.upper()} export", type="primary"):
         # export() writes an audit-log line, so it runs only when the user asks for a file

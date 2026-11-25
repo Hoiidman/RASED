@@ -42,6 +42,7 @@ button[data-testid="stExpandSidebarButton"], div[data-testid="stSidebarCollapseB
 .r-ds-row {{ display:flex; justify-content:space-between; gap:16px; padding:6px 0; border-top:1px solid {RULE};
   font-size:14px; line-height:20px; }}
 .r-ds-row span.when {{ color:{MUTED}; white-space:nowrap; }}
+.r-fresh {{ color:{MUTED}; font-size:14px; line-height:20px; margin:4px 0 8px 0; }}
 .r-ds-dot {{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; }}
 section[data-testid="stSidebar"] {{ background: {BLACK}; }}
 section[data-testid="stSidebar"] * {{ color: #EDEDED; }}
@@ -123,7 +124,47 @@ def ago(ts: str) -> str:
 _NICE = {"kit_aggregates": "DED and Free Zone data", "ajman_open_data": "Ajman Open Data portal"}
 
 
-def data_status(status: list[dict], update: str | None = None):
+_MON_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+_MON_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+
+def month_label(period: str, lang: str = "en") -> str:
+    try:
+        y, m = period[:4], int(period[5:7])
+    except (TypeError, ValueError):
+        return str(period)
+    return f"{(_MON_AR if lang == 'ar' else _MON_EN)[m - 1]} {y}"
+
+
+def freshness_line(official: dict | None, catalog):
+    """One line under the top bar: is RASED's data as new as the official sources?"""
+    from labels import LANG
+    lang = LANG.get("v", "en")
+    try:
+        last = catalog.set_index("id")["last_period"]
+        main, fz = month_label(str(last["new_reg_mainland"]), lang), month_label(str(last["new_reg_fz"]), lang)
+    except (KeyError, AttributeError):
+        return
+    if official and official["up_to_date"]:
+        colour = GREEN_TXT
+        text = (f"البيانات محدّثة: أرقام البر الرئيسي تطابق آخر شهر منشور على بوابة عجمان للبيانات المفتوحة ({main})، "
+                f"وبيانات المنطقة الحرة حتى {fz}." if lang == "ar" else
+                f"Up to date: mainland figures match the latest month published on the official Ajman Open Data "
+                f"portal ({main}, checked {_ago(official['checked'])}). Free Zone figures run to {fz}.")
+    elif official:
+        colour = GOLD_DARK
+        newer = month_label(official["portal_latest"], lang)
+        text = (f"البوابة الرسمية لديها بيانات أحدث ({newer}) من راصد ({main}). شغّل المزامنة للتحديث." if lang == "ar" else
+                f"The official portal has newer mainland data ({newer}) than RASED ({main}). Run Sync to update.")
+    else:
+        colour = MUTED
+        text = (f"أحدث البيانات: البر الرئيسي {main}، المنطقة الحرة {fz}." if lang == "ar" else
+                f"Latest data: mainland {main}, Free Zone {fz}. The official portal could not be checked just now.")
+    st.markdown(f'<div class="r-fresh"><span class="r-ds-dot" style="background:{colour}"></span>{escape(text)}</div>',
+                unsafe_allow_html=True)
+
+
+def data_status(status: list[dict], update: str | None = None, official: dict | None = None):
     """Data-status panel (shown inside the top bar's popover): latest update, then one row per source."""
     st.markdown("**Data status**")
     if update:
@@ -139,6 +180,13 @@ def data_status(status: list[dict], update: str | None = None):
         label = "not connected" if never else {"ok": "up to date", "stale": "stale", "error": "error"}.get(state, state)
         if never:
             state = "none"
+        if s["source"] == "ajman_open_data":  # public API, checked live against our data (no key needed)
+            if official:
+                state = "ok" if official["up_to_date"] else "stale"
+                label = "matches ours" if official["up_to_date"] else "has newer data"
+                when = f"latest {month_label(official['portal_latest'])}, checked {_ago(official['checked'])}"
+            else:
+                label, when = "public API", "check unavailable just now"
         rows.append(f'<div class="r-ds-row"><span><span class="r-ds-dot" style="background:{colour.get(state, MUTED)}">'
                     f'</span>{escape(name)}</span><span class="when">{label} · {escape(when)}</span></div>')
     st.markdown("".join(rows), unsafe_allow_html=True)

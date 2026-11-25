@@ -74,6 +74,7 @@ if lang == "ar":  # right-to-left text in the main area; charts keep left-to-rig
                 # sentences and numbers like +7.1% keep their punctuation in place inside RTL
                 ".block-container p,.block-container li,.r-k-value,.r-k-delta,.r-k-note,.r-k-label,"
                 ".r-alert-title,.r-alert-body,.r-meta,.page-q{unicode-bidi:plaintext}"
+                ".r-fresh{unicode-bidi:plaintext}.r-ds-dot{margin-right:0;margin-left:8px}"
                 ".r-tag{margin-left:0;margin-right:14px}.r-title .r-ar{margin-left:0;margin-right:8px}</style>",
                 unsafe_allow_html=True)
 
@@ -107,10 +108,12 @@ if signed_in:
         update = (f"Updated {ui.ago(last['time'])}: {ui._NICE.get(last['dataset'], last['dataset'])} "
                   f"added {last['rows_added']:,} rows"
                   + (f", {n_al} new alert{'s' if n_al != 1 else ''}" if n_al else ""))
+official = None if be.use_mocks() else be.official_check()  # live check against the official portal, cached 6 h
 with status_slot.container():
     with st.popover(":material/database:", help="Data status", use_container_width=True):
-        ui.data_status(be.sync_status(), update)
+        ui.data_status(be.sync_status(), update, official)
 ui.rule()
+ui.freshness_line(official, be.get_catalog())
 
 # --- government login -------------------------------------------------------------
 if portal == "gov" and not st.session_state.get("gov_ok"):
@@ -135,10 +138,18 @@ if portal == "gov" and not st.session_state.get("gov_ok"):
 
 pages = GOV_PAGES if portal == "gov" else INV_PAGES
 
-# Pages as tabs across the top. Every tab renders on each run; engine reads are cached in backend.
+# Pages as tabs across the top. Each page is a fragment: moving a slider or picking a filter reruns only
+# that page, not all eight tabs. Engine reads are cached in backend.
 views = views_gov if portal == "gov" else views_inv
+
+
+@st.fragment
+def _page(page: str):
+    views.render(page, lang)
+
+
 for tab, page in zip(st.tabs([t["p_" + k] for k in pages]), pages):
     with tab:
-        views.render(page, lang)
+        _page(page)
 
 st.caption(f"{be.engine_summary()}. Licence data is a signal, not GDP or FDI.")  # footer
