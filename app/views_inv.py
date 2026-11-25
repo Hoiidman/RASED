@@ -28,6 +28,11 @@ def _activity_monthly():
     return df[~df["is_partial"]]
 
 
+def _shrinking(table) -> bool:
+    """True when most groups fell, so the leaders are the most resilient rather than "growing"."""
+    return bool(len(table)) and int((table["change_pct"] < 0).sum()) * 2 > len(table)
+
+
 def _competition(n):
     return "high" if n > 1200 else "moderate" if n > 600 else "low"
 
@@ -39,7 +44,11 @@ def opportunities(lang):
     act = be.group_differences("activity")["table"]
     mon = _activity_monthly()
     top = act.head(4)
-    ui.section("Fastest-growing sectors, H1 2026 vs H1 2025")
+    if _shrinking(act):
+        fell = int((act["change_pct"] < 0).sum())
+        ui.section(f"Most resilient sectors, H1 2026 vs H1 2025 ({fell} of {len(act)} sectors fell)")
+    else:
+        ui.section("Fastest-growing sectors, H1 2026 vs H1 2025")
     cols = st.columns(4, gap="large")
     for col, (_, r) in zip(cols, top.iterrows()):
         s = mon[mon["group"] == r["group"]].sort_values("period")
@@ -54,7 +63,8 @@ def opportunities(lang):
         area = be.group_differences("area")
         at = area["table"]
         overall = (at["H1 2026"].sum() / at["H1 2025"].sum() - 1) * 100
-        fig = ch.bar_change(at, f"Where demand is growing (Ajman overall {overall:+.0f}%)",
+        where = "Where demand is holding up best" if _shrinking(at) else "Where demand is growing"
+        fig = ch.bar_change(at, f"{where} (Ajman overall {overall:+.0f}%)",
                             area["finding_en"], height=430)
         fig.add_vline(x=overall, line=dict(color=ch.MUTED, dash="dot", width=1.5))
         fig.add_annotation(x=overall, y=1.0, yref="paper", text="Ajman overall", showarrow=False,
@@ -82,7 +92,9 @@ def watchouts(lang):
     c1, c2 = st.columns(2, gap="large")
     with c1:
         cool = act.tail(4)
-        _plot(ch.bar_change(cool, "Sectors that are cooling", "Lowest growth, H1 2026 vs H1 2025", height=330))
+        _plot(ch.bar_change(cool, "Sectors that are cooling",
+                            ("Biggest falls" if _shrinking(act) else "Lowest growth") + ", H1 2026 vs H1 2025",
+                            height=330))
     with c2:
         tot = be.get_series(["new_reg_total"], start="2023-01", end="2025-12")
         tot = tot.assign(m=tot["period"].str[5:7].astype(int))
@@ -149,6 +161,9 @@ def advisor(lang):
                  "zone_change_pct": float(zt.loc[zone, "change_pct"]) if zone in zt.index else None,
                  "virtual_office_share_fz_pct": _vo_share(),
                  "source": "Ajman DED & Free Zone data, H1 2026 vs H1 2025 (activity and area figures are mainland only)"}
+        if activity in act.index:  # where this sector sits, so a fall is read against the whole market
+            facts["sector_rank_by_change"] = f"{list(act.index).index(activity) + 1} of {len(act)} sectors"
+            facts["sectors_that_fell_h1_2026"] = f"{int((act['change_pct'] < 0).sum())} of {len(act)}"
         if comp:  # saturation risk from DED's public register; replaces the all-sector competition guess
             facts.update({
                 "competition_level": comp["level"],

@@ -156,7 +156,18 @@ def group_differences(dim: str) -> dict:
     table["share_2026_pct"] = table["H1 2026"] / total * 100 if total else 0.0
     table = table.sort_values("change_pct", ascending=False).reset_index(drop=True)
     finding = "Comparable complete half-years are not available."
+    finding_ar = "لا تتوفر أنصاف سنوات كاملة قابلة للمقارنة."
     if not table.empty:
         leader = table.iloc[0]
-        finding = f"{leader['group']}: {leader['change_pct']:+.1f}% in H1 2026 versus H1 2025 (comparable observed groups)."
-    return {"table": table, "finding_en": finding, "finding_ar": finding}
+        fell, n = int((table["change_pct"] < 0).sum()), len(table)
+        if fell * 2 > n:  # most groups shrank: the top one is the most resilient, not "growing"
+            verb = "still grew" if leader["change_pct"] >= 0 else "fell least"
+            finding = (f"{fell} of {n} groups fell. Most resilient: {leader['group']}, which {verb} "
+                       f"({leader['change_pct']:+.1f}% in H1 2026 versus H1 2025).")
+            finding_ar = (f"تراجعت {fell} من أصل {n} فئات. الأكثر صموداً: {leader['group']} "
+                          f"({leader['change_pct']:+.1f}% في النصف الأول 2026 مقارنة بالنصف الأول 2025).")
+        else:
+            finding = f"{leader['group']}: {leader['change_pct']:+.1f}% in H1 2026 versus H1 2025 (comparable observed groups)."
+            finding_ar = f"{leader['group']}: {leader['change_pct']:+.1f}% في النصف الأول 2026 مقارنة بالنصف الأول 2025."
+    return {"table": table, "finding_en": finding, "finding_ar": finding_ar,
+            "mostly_shrinking": bool(not table.empty and (table["change_pct"] < 0).sum() * 2 > len(table))}

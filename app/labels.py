@@ -38,7 +38,7 @@ TITLES_AR = {
     "drivers": ("المحركات", "ما الذي قد يسبب التغيير؟ فرضيات قيد المتابعة"),
     "impact": ("الأثر والقياس", "كيف تستفيد عجمان، وكيف نقيس ذلك"),
     "export": ("التصدير والواجهة البرمجية", "انقل البيانات إلى أنظمتك"),
-    "opportunities": ("الفرص", "أين ينمو الطلب على الأعمال في عجمان؟"),
+    "opportunities": ("الفرص", "أين الطلب على الأعمال في عجمان الأقوى؟"),
     "watchouts": ("تنبيهات", "ما الذي يجب أن ينتبه له صاحب العمل الجديد؟"),
     "advisor": ("مستشار أعمالي", "توقعات مخصصة لقطاعك ومنطقتك"),
 }
@@ -52,7 +52,7 @@ TITLES = {  # (title, question) per page
     "drivers": ("Drivers", "What might be causing the change? (hypotheses being monitored)"),
     "impact": ("Impact & measurement", "How Ajman benefits, and how we measure it"),
     "export": ("Export & API", "Take the data into your own systems"),
-    "opportunities": ("Opportunities", "Where is Ajman's business demand growing?"),
+    "opportunities": ("Opportunities", "Where is Ajman's business demand strongest?"),
     "watchouts": ("Watch-outs", "What should a new business be careful about?"),
     "advisor": ("My business advisor", "A tailored outlook for your sector and area"),
 }

@@ -17,7 +17,8 @@ SYSTEM = (
     "Use only the facts in FACTS_JSON. Quote numbers exactly with their source and period. "
     "If a fact is missing, say so. Licence data is not GDP or FDI; call it a 'licence-implied activity signal'. "
     "Give suggestions as options with trade-offs, not orders. Use neutral language on regional events "
-    "('regional disruption'). Write plain, direct prose a non-specialist can read, at most about 180 words. "
+    "('regional disruption'). When most sectors or areas fell, call the best performers 'the most resilient', "
+    "never 'growing' or 'fastest-growing'. Write plain, direct prose a non-specialist can read, at most about 180 words. "
     "Use a short numbered list only for suggestions. No emoji, no em dashes, no 'Label:' bullet patterns. "
     "Answer in {lang}."
 )
@@ -80,6 +81,15 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
         lvl = f.get("competition_level", "moderate")
         zone_note = c("zone_change_pct", f"{zone} registrations change (H1 2026, %)")
         growing = (f.get("sector_growth_pct") or 0) >= 0
+        fell, n_sec = (str(f.get("sectors_that_fell_h1_2026", "")).split(" of ") + [""])[:2]
+        rank = str(f.get("sector_rank_by_change", "")).split(" of ")[0]
+        if growing:
+            trend = "so demand is growing"
+        elif fell.isdigit() and n_sec.isdigit() and int(fell) * 2 > int(n_sec) and rank.isdigit() and int(rank) * 2 <= int(n_sec):
+            trend = (f"but {fell} of {n_sec} sectors fell, and this one held up better than most, "
+                     f"so it is among the more resilient sectors right now")
+        else:
+            trend = "so the segment is cooling and you will need a clear point of difference"
         reg_key = next((k for k in f if k.startswith("same_activity_licences_in_area")), None)
         if reg_key:  # saturation from DED's public register (relative, not an exact count of active firms)
             here = c(reg_key, f"{act} licences in {area} on DED's register (to Mar 2024)")
@@ -91,7 +101,7 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
         text = (
             f"#### {act} in {area}, {zone}\n\n"
             f"{act} registrations changed {g}% in the first half of 2026 compared with a year earlier, "
-            f"{'so demand is growing' if growing else 'so the segment is cooling and you will need a clear point of difference'}. "
+            f"{trend}. "
             f"{competition}"
             f"{zone} registrations as a whole changed {zone_note}% over the same period.\n\n"
             f"The main risk is that the regional disruption since March 2026 is still holding back mainland demand. "
