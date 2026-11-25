@@ -193,15 +193,50 @@ def alerts(lang):
 
 
 # ------------------------------------------------------------------ Outlook
+def _outlook_presets() -> dict:
+    """Slider presets: (recovery starts in, recovery takes, shock depth %, what it means).
+    A, B and C come from config/assumptions.yaml, so they always match the scenario lines on the chart."""
+    from core.settings import config
+    try:
+        sc = config("assumptions")["scenarios"]
+    except Exception:  # noqa: BLE001 - mock mode or missing config: the documented defaults
+        sc = {"A": [9, 12, 100], "B": [5, 6, 100], "C": [2, 3, 100]}
+    return {
+        "No disruption": (0, 1, 0, "the March 2026 shock removed, to see where registrations would be without it"),
+        "Fast recovery": (*sc["C"][:3], "scenario C: the shock fades quickly, for example after a short-lived crisis"),
+        "Central": (*sc["B"][:3], "scenario B: the most likely path if conditions keep improving"),
+        "Slow recovery": (*sc["A"][:3], "scenario A: recovery waits most of a year, for example if instability lasts"),
+        "Stress test": (12, 18, 150, "a deeper and longer crisis than today, to test how bad it could get"),
+    }
+
+
+def _apply_preset(presets):
+    name = st.session_state.get("ol_preset")
+    if name in presets:
+        st.session_state.ol_rs, st.session_state.ol_rl, st.session_state.ol_dp = presets[name][:3]
+
+
+def _clear_preset():
+    st.session_state.ol_preset = None
+
+
 def outlook(lang):
     _title("outlook")
     c0, c1, c2, c3 = st.columns([1.3, 1, 1, 1])
     ind = c0.selectbox("Indicator", ["new_reg_mainland", "new_reg_fz", "new_reg_total"],
                        format_func={"new_reg_mainland": "Mainland registrations", "new_reg_fz": "Free Zone registrations",
                                     "new_reg_total": "All new registrations"}.get)
-    rs = c1.slider("Recovery starts in (months)", 0, 12, 6)
-    rl = c2.slider("Recovery takes (months)", 1, 18, 6)
-    dp = c3.slider("Shock depth (% of current)", 0, 150, 100, step=10)
+    presets = _outlook_presets()
+    for k, v in zip(("ol_rs", "ol_rl", "ol_dp"), (6, 6, 100)):
+        st.session_state.setdefault(k, v)
+    st.segmented_control("Presets", list(presets), key="ol_preset", on_change=_apply_preset, args=(presets,),
+                         help="Sets the three sliders. Moving a slider afterwards makes it your own scenario.")
+    rs = c1.slider("Recovery starts in (months)", 0, 12, key="ol_rs", on_change=_clear_preset)
+    rl = c2.slider("Recovery takes (months)", 1, 18, key="ol_rl", on_change=_clear_preset)
+    dp = c3.slider("Shock depth (% of current)", 0, 150, step=10, key="ol_dp", on_change=_clear_preset)
+    chosen = st.session_state.get("ol_preset")
+    if chosen:
+        st.caption(f"{chosen}: {presets[chosen][3]}")
     fc_all = be.get_forecast(ind, rs, rl, dp)
     hist_all = be.get_series([ind])
     full_all = hist_all[~hist_all["is_partial"]]
