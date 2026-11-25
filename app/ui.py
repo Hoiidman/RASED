@@ -38,7 +38,11 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 /* no sidebar: language, portal, sync and sign-out live in the top bar */
 section[data-testid="stSidebar"], div[data-testid="stSidebarCollapsedControl"],
 button[data-testid="stExpandSidebarButton"], div[data-testid="stSidebarCollapseButton"] {{ display: none !important; }}
-.r-head-bare {{ border-bottom: none; padding-bottom: 0; margin-bottom: 0; }}
+.r-head.r-head-bare {{ border-bottom: none; padding-bottom: 0; margin-bottom: 0; }}
+.r-ds-row {{ display:flex; justify-content:space-between; gap:16px; padding:6px 0; border-top:1px solid {RULE};
+  font-size:14px; line-height:20px; }}
+.r-ds-row span.when {{ color:{MUTED}; white-space:nowrap; }}
+.r-ds-dot {{ display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:8px; }}
 section[data-testid="stSidebar"] {{ background: {BLACK}; }}
 section[data-testid="stSidebar"] * {{ color: #EDEDED; }}
 section[data-testid="stSidebar"] .stRadio label p {{ font-size: 15px; }}
@@ -116,15 +120,28 @@ def ago(ts: str) -> str:
     return _ago(ts)
 
 
-def meta_line(status: list[dict], update: str | None = None):
-    """One muted line: latest update, then each source's state. Only non-ok states get colour."""
-    parts = []
+_NICE = {"kit_aggregates": "DED and Free Zone data", "ajman_open_data": "Ajman Open Data portal"}
+
+
+def data_status(status: list[dict], update: str | None = None):
+    """Data-status panel (shown inside the top bar's popover): latest update, then one row per source."""
+    st.markdown("**Data status**")
+    if update:
+        st.caption(update)
+    colour = {"ok": GREEN_TXT, "stale": GOLD_DARK, "error": RED_TXT}
+    rows = []
     for s in status:
-        st_ = s["status"]
-        tag = "" if st_ == "ok" else f' <span style="color:{GOLD_DARK if st_ == "stale" else RED}">({escape(st_)})</span>'
-        parts.append(f'{escape(s["source"])} {_ago(s["last_changed"])}{tag}')
-    head = f"<b>{escape(update)}</b><br>" if update else ""
-    st.markdown(f'<div class="r-meta">{head}Sources: ' + " · ".join(parts) + "</div>", unsafe_allow_html=True)
+        state = s.get("status", "")
+        name = _NICE.get(s["source"], s["source"])
+        changed = s.get("last_changed")
+        never = changed in (None, "", "Not synced")
+        when = "awaiting official access" if never else f"changed {_ago(changed)}"
+        label = "not connected" if never else {"ok": "up to date", "stale": "stale", "error": "error"}.get(state, state)
+        if never:
+            state = "none"
+        rows.append(f'<div class="r-ds-row"><span><span class="r-ds-dot" style="background:{colour.get(state, MUTED)}">'
+                    f'</span>{escape(name)}</span><span class="when">{label} · {escape(when)}</span></div>')
+    st.markdown("".join(rows), unsafe_allow_html=True)
 
 
 def page_title(title: str, question: str = ""):

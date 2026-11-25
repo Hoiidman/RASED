@@ -78,22 +78,37 @@ if lang == "ar":  # right-to-left text in the main area; charts keep left-to-rig
 
 # --- top bar: title, then icon buttons on the right ---
 signed_in = portal == "gov" and st.session_state.get("gov_ok")
-cols = st.columns([8, 0.6, 2, 0.6, 0.6] if signed_in else [8, 0.6, 2], vertical_alignment="center")
+cols = st.columns([8, 0.6, 0.6, 2, 0.6, 0.6] if signed_in else [8, 0.6, 0.6, 2], vertical_alignment="center")
 with cols[0]:
     ui.header(t["gov"] if portal == "gov" else t["inv"], t["tagline"], rule=False)
 cols[1].button("ع" if lang == "en" else "EN", key="lang_toggle", on_click=_toggle_lang,
                help="العربية" if lang == "en" else "English", width="stretch")
+status_slot = cols[2].empty()  # data-status icon, filled once the sync state is known (after any Sync now)
 other = "inv" if portal == "gov" else "gov"
-cols[2].button(t[other], key="portal_toggle", on_click=_toggle_portal, width="stretch",
+cols[3].button(t[other], key="portal_toggle", on_click=_toggle_portal, width="stretch",
                icon=":material/storefront:" if other == "inv" else ":material/account_balance:",
                help=f"Switch to the {t[other]}")
 if signed_in:
     # icon-only buttons; their names show on hover
-    if cols[3].button(":material/sync:", key="sync_btn", help=t["sync_now"], width="stretch"):
+    if cols[4].button(":material/sync:", key="sync_btn", help=t["sync_now"], width="stretch"):
         res = be.run_sync(force=True)
         st.session_state.last_sync = res
         st.toast(f"{len(res.get('changed', []))} dataset(s) changed · {res.get('new_alerts', 0)} new alert(s)")
-    cols[4].button(":material/logout:", key="signout_btn", help=t["logout"], width="stretch", on_click=_sign_out)
+    cols[5].button(":material/logout:", key="signout_btn", help=t["logout"], width="stretch", on_click=_sign_out)
+
+# data status lives behind a small icon instead of two lines under the title
+update = None
+if signed_in:
+    changes = be.get_changes()
+    if changes:
+        last = changes[0]
+        n_al = last.get("new_alerts", 0)
+        update = (f"Updated {ui.ago(last['time'])}: {ui._NICE.get(last['dataset'], last['dataset'])} "
+                  f"added {last['rows_added']:,} rows"
+                  + (f", {n_al} new alert{'s' if n_al != 1 else ''}" if n_al else ""))
+with status_slot.container():
+    with st.popover(":material/database:", help="Data status", use_container_width=True):
+        ui.data_status(be.sync_status(), update)
 ui.rule()
 
 # --- government login -------------------------------------------------------------
@@ -118,16 +133,6 @@ if portal == "gov" and not st.session_state.get("gov_ok"):
     st.stop()
 
 pages = GOV_PAGES if portal == "gov" else INV_PAGES
-
-update = None
-if portal == "gov":
-    changes = be.get_changes()
-    if changes:
-        last = changes[0]
-        n_al = last.get("new_alerts", 0)
-        update = (f"Updated {ui.ago(last['time'])}: {last['dataset']} added {last['rows_added']:,} rows"
-                  + (f", {n_al} new alert{'s' if n_al != 1 else ''}" if n_al else ""))
-ui.meta_line(be.sync_status(), update)
 
 # Pages as tabs across the top. Every tab renders on each run; engine reads are cached in backend.
 views = views_gov if portal == "gov" else views_inv
