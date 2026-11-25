@@ -86,6 +86,21 @@ def _call(name, *args, **kwargs):
     return getattr(mocks, name)(*args, **kwargs)
 
 
+@st.cache_resource(show_spinner="Preparing the data (first start only)")
+def ensure_data() -> bool:
+    """A fresh copy (e.g. a cloud deploy) has no processed snapshot, because data/cache is not in git.
+    Build it once per server process from the kit files in the repo, so the app shows real data, not mocks."""
+    if use_mocks():
+        return False
+    try:
+        from core import store, sync
+        if store.load_table().empty:
+            sync.run_sync(force=True)
+        return True
+    except Exception:  # never block the app: pages fall back to mocks per function
+        return False
+
+
 # Caching: the real engine may fit models (slow). Reads are cached so sliders and page switches stay
 # instant during the demo; anything that changes state clears the cache.
 _SLOW, _FAST = 600, 15  # seconds

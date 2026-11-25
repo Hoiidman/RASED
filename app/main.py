@@ -41,6 +41,7 @@ import views_inv  # noqa: E402
 from labels import LANG, L  # noqa: E402
 
 ui.inject_css()
+be.ensure_data()  # first start on a fresh copy builds the data snapshot; no-op afterwards
 
 GOV_PAGES = ["overview", "alerts", "outlook", "actions", "sectors", "drivers", "impact", "export"]
 INV_PAGES = ["opportunities", "watchouts", "advisor"]
