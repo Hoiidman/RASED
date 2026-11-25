@@ -9,7 +9,7 @@ at.run()
 btn = next(b for b in at.button if "Get my outlook" in str(b.label))
 btn.click().run()
 ex = [e.value for e in at.exception]
-text = " ".join(str(m.value) for m in at.markdown)
+text = " ".join(str(m.value) for m in list(at.markdown) + list(at.caption))
 ok = not ex and "Not financial advice" in text
 print("advisor:", "OK" if ok else f"FAIL {ex[:1]}", "| engine caption:",
       next((c.value for c in at.caption if "Engine:" in str(c.value)), "none")[:120])

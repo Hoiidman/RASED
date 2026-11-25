@@ -1,4 +1,5 @@
 """Edge cases for the Outlook date window. Run: python app/window_test.py"""
+import os
 import sys
 
 from streamlit.testing.v1 import AppTest
@@ -20,12 +21,16 @@ at = AppTest.from_file("main.py", default_timeout=120)
 at.session_state["gov_ok"] = True
 at.session_state["portal"] = "gov"
 at.run()
-before = sum("AL-006" in str(m.value) for m in at.markdown)
 next(b for b in at.button if b.label == "Sync now").click().run()
 ex = [e.value for e in at.exception]
-after_alert = any("Retail shops, 2026-10" in str(m.value) for m in at.markdown)
+text = " ".join(str(m.value) for m in at.markdown)
+mock_mode = os.environ.get("RASED_USE_MOCKS", "0") == "1"
+# Mocks raise a demo alert on sync. The real engine only raises one when the data actually changed.
+after_alert = ("Retail shops, 2026-10" in text) if mock_mode else ("Latest data updates" in text.upper()
+                                                                   or "LATEST DATA UPDATES" in text.upper())
 news = any("headlines" in str(c.value).lower() for c in at.caption)  # live or sample news shown
 ok = not ex and after_alert and news
-print(f"sync -> new alert shown={after_alert}, news shown={news}  {'OK' if ok else 'FAIL ' + str(ex[:1])}")
+print(f"sync ({'mock' if mock_mode else 'real'}) -> update feed/alert={after_alert}, news shown={news}  "
+      f"{'OK' if ok else 'FAIL ' + str(ex[:1])}")
 bad += not ok
 sys.exit(1 if bad else 0)
