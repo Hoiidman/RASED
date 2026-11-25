@@ -141,23 +141,42 @@ def advisor(lang):
         mon = _activity_monthly()
         area_df = be.get_series(["new_reg_total"], group_type="area")
         area_12 = int(area_df[(area_df["group"] == area) & ~area_df["is_partial"]].sort_values("period")["value"].tail(12).sum())
+        comp = be.get_competitors(activity, area)
+        new_12 = int(mon[mon["group"] == activity]["value"].tail(12).sum())
         facts = {"sector_growth_pct": float(act.loc[activity, "change_pct"]) if activity in act.index else None,
                  "area_growth_pct": float(ar.loc[area, "change_pct"]) if area in ar.index else None,
-                 "area_competition": area_12, "competition_level": _competition(area_12 * 0.6),
+                 "new_businesses_all_sectors_in_area_last_12_months": area_12, "competition_level": _competition(area_12 * 0.6),
                  "zone_change_pct": float(zt.loc[zone, "change_pct"]) if zone in zt.index else None,
                  "virtual_office_share_fz_pct": _vo_share(),
                  "source": "Ajman DED & Free Zone data, H1 2026 vs H1 2025 (activity and area figures are mainland only)"}
+        if comp:  # saturation risk from DED's public register; replaces the all-sector competition guess
+            facts.update({
+                "competition_level": comp["level"],
+                "same_activity_licences_in_area (DED register to Mar 2024, may include inactive)": comp["in_area"]
+                if comp["in_area"] is not None else "fewer than 5",
+                "area_rank_for_this_activity": f"{comp['rank']} of {comp['areas']} areas" if comp["rank"] else "not in the top areas",
+                "same_activity_licences_in_ajman (same register)": comp["ajman"],
+                "new_licences_in_this_activity_last_12_months_ajman": new_12,
+                "usual_licence_type": f"{comp['licence_type']} ({comp['licence_type_share']}% of this activity)"})
         profile = {"activity": activity, "area": area, "zone": zone, "size": size, "notes": notes}
         with st.spinner("Building your outlook"):
             res = ai.advise("investor", facts, profile, lang)
-        st.session_state.inv_res = (activity, area, zone, facts, res, mon[mon["group"] == activity].sort_values("period"))
-    activity, area, zone, facts, res, s = st.session_state.inv_res
+        st.session_state.inv_res = (activity, area, zone, facts, res, mon[mon["group"] == activity].sort_values("period"),
+                                    comp)
+    saved = st.session_state.inv_res
+    activity, area, zone, facts, res, s, comp = saved if len(saved) == 7 else (*saved, None)
 
     m1, m2, m3 = st.columns(3)
     m1.metric(f"{activity} growth", f"{facts['sector_growth_pct']:+.1f}%" if facts["sector_growth_pct"] is not None else "n/a")
     m2.metric(f"{area} demand growth", f"{facts['area_growth_pct']:+.1f}%" if facts["area_growth_pct"] is not None else "n/a")
-    m3.metric(f"Competition in {area}", facts["competition_level"].capitalize(),
-              f"{facts['area_competition']:,} new businesses in the area / 12 mo", delta_color="off")
+    if comp:
+        here = f"{comp['in_area']:,}" if comp["in_area"] is not None else "fewer than 5"
+        where = f", rank {comp['rank']} of {comp['areas']} areas" if comp["rank"] else ""
+        m3.metric(f"Saturation risk in {area}", comp["level"].capitalize(),
+                  f"{here} {activity.lower()} licences here{where}", delta_color="off")
+    else:
+        m3.metric(f"Competition in {area}", facts["competition_level"].capitalize(),
+                  f"{facts['new_businesses_all_sectors_in_area_last_12_months']:,} new businesses in the area / 12 mo", delta_color="off")
     c1, c2 = st.columns([1.2, 1], gap="large")
     with c1:
         fc = be.get_forecast("new_reg_total")
@@ -187,6 +206,12 @@ def advisor(lang):
         _plot(fig)
     with c2:
         st.markdown(res["text"])
+        if comp:
+            st.caption(f"Saturation compares how many {activity.lower()} licences each area holds on DED's public "
+                       f"register ({comp['ajman']:,} across Ajman). The register's activity list runs to "
+                       f"{ui.month_label(comp['through'])} and may include licences no longer active, so read it as "
+                       f"how crowded {area} is relative to other areas, not an exact count. Most {activity.lower()} "
+                       f"businesses hold a {comp['licence_type'].lower()} ({comp['licence_type_share']}%).")
         st.caption("Indicative, based on public data. Not financial advice. "
                    "Forecasts cover the whole sector and area, not your business.")
         st.caption(f"Engine: {res['engine']}. Facts used: " + "; ".join(res["cited_facts"]))

@@ -53,3 +53,10 @@
   indicator: new_reg_total
   group_type: legal_form
   needs_events: true
+- id: licence_fees
+  name: Licence fees (fee elasticity)
+  hypothesis: New registrations and renewals may respond to changes in licence fees and fines.
+  proxy: Registrations and renewals before and after dated fee changes
+  source: DED fee schedule history with effective dates required
+  test: Estimate licence-fee elasticity around each fee change, against the same months a year earlier; association only.
+  indicator: licence_fee

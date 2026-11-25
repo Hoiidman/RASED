@@ -76,15 +76,23 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
         p = profile or {}
         act, area, zone = p.get("activity", "your activity"), p.get("area", "your area"), p.get("zone", "Mainland")
         g = c("sector_growth_pct", f"{act} growth (H1 2026 vs H1 2025, %)")
-        comp = c("area_competition", f"New businesses in {area} (last 12 months)")
+        comp = c("new_businesses_all_sectors_in_area_last_12_months", f"New businesses of all kinds in {area} (last 12 months)")
         lvl = f.get("competition_level", "moderate")
         zone_note = c("zone_change_pct", f"{zone} registrations change (H1 2026, %)")
-        growing = f.get("sector_growth_pct", 0) >= 0
+        growing = (f.get("sector_growth_pct") or 0) >= 0
+        reg_key = next((k for k in f if k.startswith("same_activity_licences_in_area")), None)
+        if reg_key:  # saturation from DED's public register (relative, not an exact count of active firms)
+            here = c(reg_key, f"{act} licences in {area} on DED's register (to Mar 2024)")
+            rank = c("area_rank_for_this_activity", f"{area} rank for {act}")
+            competition = (f"DED's public register lists {here} {act.lower()} licences in {area}, ranking it {rank} "
+                           f"for this activity, so the risk of a crowded market there is {lvl}. ")
+        else:
+            competition = f"{comp} new businesses registered in {area} over the last 12 months, which means {lvl} competition. "
         text = (
             f"#### {act} in {area}, {zone}\n\n"
             f"{act} registrations changed {g}% in the first half of 2026 compared with a year earlier, "
             f"{'so demand is growing' if growing else 'so the segment is cooling and you will need a clear point of difference'}. "
-            f"{comp} new businesses registered in {area} over the last 12 months, which means {lvl} competition. "
+            f"{competition}"
             f"{zone} registrations as a whole changed {zone_note}% over the same period.\n\n"
             f"The main risk is that the regional disruption since March 2026 is still holding back mainland demand. "
             f"Ramadan, Eid and the summer months are usually slower for new registrations.\n\n"

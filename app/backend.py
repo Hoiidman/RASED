@@ -206,6 +206,40 @@ def official_check() -> dict | None:
         return None
 
 
+@st.cache_data(ttl=_DAY, show_spinner=False)
+def _competitors_table():
+    """Counts per activity x area from DED's public register, built offline (scripts/build_competitors.py)."""
+    from core.settings import ROOT
+    return pd.read_csv(ROOT / "data" / "reference" / "competitors.csv")
+
+
+def get_competitors(activity: str, area: str) -> dict | None:
+    """Registered businesses in this activity and area, the area's rank, and the usual licence type.
+    None if the activity isn't on the register. Counts under 5 are not published (in_area = None)."""
+    try:
+        d = _competitors_table()
+    except (OSError, ValueError):
+        return None
+    d = d[d["activity"] == activity]
+    if d.empty:
+        return None
+    total = d[d["area"] == "All Ajman"]
+    areas = d[d["area"] != "All Ajman"].sort_values("licences", ascending=False).reset_index(drop=True)
+    hit = areas.index[areas["area"] == area]
+    rank = int(hit[0]) + 1 if len(hit) else None
+    n = len(areas)
+    if rank is None:
+        level = "low"
+    else:
+        level = "high" if rank <= max(1, round(n * 0.25)) else "moderate" if rank <= round(n * 0.75) else "low"
+    first = d.iloc[0]
+    return {"in_area": int(areas.loc[hit[0], "licences"]) if rank else None,
+            "ajman": int(total["licences"].iat[0]) if not total.empty else None,
+            "rank": rank, "areas": n, "level": level,
+            "licence_type": str(first["licence_type"]), "licence_type_share": int(first["licence_type_share_pct"]),
+            "through": str(first["register_through"])}
+
+
 @st.cache_data(ttl=_HOUR, show_spinner=False)
 def get_context(period, sector=None):
     """Live context (core/context.py) even in mock mode: it doesn't depend on the engine.

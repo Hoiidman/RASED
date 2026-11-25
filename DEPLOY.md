@@ -37,7 +37,12 @@ A backup copy of the dashboard at a public link. The laptop stays the main demo.
 
 `https://data.ajman.ae/api/explore/v2.1/` is an Opendatasoft portal. Public datasets need **no API key**;
 there is nothing to apply for. Relevant datasets: `license-in-ajman-area` and `license-in-ajman-activities`
-(DED, record level, updated 2026-09-28, start dates up to June 2026). Their monthly counts match the kit's
-mainland figures exactly, so the portal is the kit's source. Only aggregated counts should enter RASED
-(the API can group server side, e.g. `group_by=date_format(startdate, 'yyyy-MM')`), never trade names or
-licence numbers.
+(DED, record level, updated 2026-09-28, start dates up to June 2026). Their January to June 2026 monthly
+counts match the kit's mainland figures exactly. The register has a gap from April to December 2024, and
+its activity dataset stops at March 2024.
+
+Only aggregated counts are stored or shown in RASED, never trade names or licence numbers. The app asks the
+API for grouped counts only (e.g. `group_by=date_format(startdate, 'yyyy-MM')`). The one exception is the
+offline script `scripts/build_competitors.py`: activity and area sit in two datasets, so it links them by
+licence number in memory and writes only counts per activity and area (under 5 removed) to
+`data/reference/competitors.csv`. Rerun it by hand when the register is updated.
