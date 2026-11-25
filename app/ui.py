@@ -35,6 +35,10 @@ button[data-baseweb="tab"] p, div[data-testid="stMetricValue"] {{
 .stButton button, .stDownloadButton button, .stFormSubmitButton button {{
   min-height: 40px; padding: 0 20px; font-weight: 500; }}
 header[data-testid="stHeader"] {{ background: transparent; }}
+/* no sidebar: language, portal, sync and sign-out live in the top bar */
+section[data-testid="stSidebar"], div[data-testid="stSidebarCollapsedControl"],
+button[data-testid="stExpandSidebarButton"], div[data-testid="stSidebarCollapseButton"] {{ display: none !important; }}
+.r-head-bare {{ border-bottom: none; padding-bottom: 0; margin-bottom: 0; }}
 section[data-testid="stSidebar"] {{ background: {BLACK}; }}
 section[data-testid="stSidebar"] * {{ color: #EDEDED; }}
 section[data-testid="stSidebar"] .stRadio label p {{ font-size: 15px; }}
@@ -80,11 +84,17 @@ def inject_css():
     st.markdown(CSS, unsafe_allow_html=True)
 
 
-def header(portal_label: str, tagline: str):
+def header(portal_label: str, tagline: str, rule: bool = True):
+    """Title line. With rule=False it sits in the top bar's first column and ui.rule() draws the line under the bar."""
+    cls = "r-head" if rule else "r-head r-head-bare"
     st.markdown(
-        f'<div class="r-head"><div class="r-title">RASED<span class="r-ar">راصد</span>'
+        f'<div class="{cls}"><div class="r-title">RASED<span class="r-ar">راصد</span>'
         f'<span class="r-tag">{escape(tagline)}</span></div>'
         f'<div class="r-portal">{escape(portal_label)}</div></div>', unsafe_allow_html=True)
+
+
+def rule():
+    st.markdown(f'<div style="border-bottom:2px solid {GOLD};margin:0 0 6px 0"></div>', unsafe_allow_html=True)
 
 
 def _ago(ts: str) -> str:

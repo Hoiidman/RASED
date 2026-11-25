@@ -21,7 +21,7 @@ at = AppTest.from_file("main.py", default_timeout=120)
 at.session_state["gov_ok"] = True
 at.session_state["portal"] = "gov"
 at.run()
-next(b for b in at.button if b.label == "Sync now").click().run()
+at.button(key="sync_btn").click().run()
 ex = [e.value for e in at.exception]
 text = " ".join(str(m.value) for m in at.markdown)
 mock_mode = os.environ.get("RASED_USE_MOCKS", "0") == "1"
