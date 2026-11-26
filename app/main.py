@@ -38,7 +38,8 @@ import backend as be  # noqa: E402
 import ui  # noqa: E402
 import views_gov  # noqa: E402
 import views_inv  # noqa: E402
-from labels import LANG, L  # noqa: E402
+from i18n import tr  # noqa: E402
+from labels import L  # noqa: E402
 
 ui.inject_css()
 be.ensure_data()  # first start on a fresh copy builds the data snapshot; no-op afterwards
@@ -66,7 +67,6 @@ def _sign_out():
 lang = "ar" if st.session_state.lang == "ع" else "en"
 portal = st.session_state.portal
 t = L[lang]
-LANG["v"] = lang
 if lang == "ar":  # right-to-left text in the main area; charts keep left-to-right axes
     st.markdown("<style>.block-container{direction:rtl;text-align:right}"
                 ".block-container .js-plotly-plot,.block-container .stPlotlyChart{direction:ltr}"
@@ -75,7 +75,15 @@ if lang == "ar":  # right-to-left text in the main area; charts keep left-to-rig
                 ".block-container p,.block-container li,.r-k-value,.r-k-delta,.r-k-note,.r-k-label,"
                 ".r-alert-title,.r-alert-body,.r-meta,.page-q{unicode-bidi:plaintext}"
                 ".r-fresh{unicode-bidi:plaintext}.r-ds-dot{margin-right:0;margin-left:8px}.r-portal{text-align:right}"
-                ".r-tag{margin-left:0;margin-right:14px}.r-title .r-ar{margin-left:0;margin-right:8px}</style>",
+                ".r-tag{margin-left:0;margin-right:14px}.r-title .r-ar{margin-left:0;margin-right:8px}"
+                # Streamlit sets text-align:left on markdown; 'start' follows each block's direction instead
+                ".block-container [data-testid='stMarkdownContainer'],.block-container [data-testid='stMarkdownContainer'] *,"
+                "[data-testid='stCaptionContainer']{text-align:start}"
+                # figures have no letters to take a direction from, so they are set right-aligned explicitly
+                ".block-container .r-k,.block-container .r-k *,.block-container [data-testid='stMetric'],"
+                ".block-container [data-testid='stMetric'] *{text-align:right}"
+                "[data-testid='stMetric'] [data-testid='stMetricValue'],[data-testid='stMetricDelta']{justify-content:flex-end}"
+                "</style>",
                 unsafe_allow_html=True)
 
 # --- top bar: title, then icon buttons on the right ---
@@ -90,13 +98,14 @@ status_slot = cols[2].empty()  # data-status icon, filled once the sync state is
 other = "inv" if portal == "gov" else "gov"
 cols[3].button(t[other], key="portal_toggle", on_click=_toggle_portal, width="stretch",
                icon=":material/storefront:" if other == "inv" else ":material/account_balance:",
-               help=f"Switch to the {t[other]}")
+               help=tr(f"Switch to the {t[other]}", f"الانتقال إلى {t[other]}"))
 if signed_in:
     # icon-only buttons; their names show on hover
     if cols[4].button(":material/sync:", key="sync_btn", help=t["sync_now"], width="stretch"):
         res = be.run_sync(force=True)
         st.session_state.last_sync = res
-        st.toast(f"{len(res.get('changed', []))} dataset(s) changed · {res.get('new_alerts', 0)} new alert(s)")
+        n_ch, n_new = len(res.get("changed", [])), res.get("new_alerts", 0)
+        st.toast(tr(f"{n_ch} dataset(s) changed · {n_new} new alert(s)", f"تغيّرت {n_ch} مجموعة بيانات · {n_new} إنذار جديد"))
     cols[5].button(":material/logout:", key="signout_btn", help=t["logout"], width="stretch", on_click=_sign_out)
 
 # data status lives behind a small icon instead of two lines under the title
@@ -106,12 +115,16 @@ if signed_in:
     if changes:
         last = changes[0]
         n_al = last.get("new_alerts", 0)
-        update = (f"Updated {ui.ago(last['time'])}: {ui._NICE.get(last['dataset'], last['dataset'])} "
-                  f"added {last['rows_added']:,} rows"
-                  + (f", {n_al} new alert{'s' if n_al != 1 else ''}" if n_al else ""))
+        if lang == "ar":
+            update = (f"آخر تحديث {ui.ago(last['time'])}: أضافت {ui._NICE_AR.get(last['dataset'], last['dataset'])} "
+                      f"{last['rows_added']:,} صفاً" + (f"، و{n_al} إنذارات جديدة" if n_al else ""))
+        else:
+            update = (f"Updated {ui.ago(last['time'])}: {ui._NICE.get(last['dataset'], last['dataset'])} "
+                      f"added {last['rows_added']:,} rows"
+                      + (f", {n_al} new alert{'s' if n_al != 1 else ''}" if n_al else ""))
 official = None if be.use_mocks() else be.official_check()  # live check against the official portal, cached 6 h
 with status_slot.container():
-    with st.popover(":material/database:", help="Data status", use_container_width=True):
+    with st.popover(":material/database:", help=tr("Data status", "حالة البيانات"), use_container_width=True):
         ui.data_status(be.sync_status(), update, official)
 ui.rule()
 ui.freshness_line(official, be.get_catalog())
@@ -153,4 +166,5 @@ for tab, page in zip(st.tabs([t["p_" + k] for k in pages]), pages):
     with tab:
         _page(page)
 
-st.caption(f"{be.engine_summary()}. Licence data is a signal, not GDP or FDI.")  # footer
+st.caption(f"{be.engine_summary()}. " + tr("Licence data is a signal, not GDP or FDI.",  # footer
+                                           "بيانات الرخص مؤشر، وليست الناتج المحلي ولا الاستثمار الأجنبي المباشر."))

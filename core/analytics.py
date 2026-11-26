@@ -165,9 +165,9 @@ def group_differences(dim: str) -> dict:
             finding = (f"{fell} of {n} groups fell. Most resilient: {leader['group']}, which {verb} "
                        f"({leader['change_pct']:+.1f}% in H1 2026 versus H1 2025).")
             finding_ar = (f"تراجعت {fell} من أصل {n} فئات. الأكثر صموداً: {leader['group']} "
-                          f"({leader['change_pct']:+.1f}% في النصف الأول 2026 مقارنة بالنصف الأول 2025).")
+                          f"(‪{leader['change_pct']:+.1f}%‬ في النصف الأول 2026 مقارنة بالنصف الأول 2025).")
         else:
             finding = f"{leader['group']}: {leader['change_pct']:+.1f}% in H1 2026 versus H1 2025 (comparable observed groups)."
-            finding_ar = f"{leader['group']}: {leader['change_pct']:+.1f}% في النصف الأول 2026 مقارنة بالنصف الأول 2025."
+            finding_ar = f"{leader['group']}: ‪{leader['change_pct']:+.1f}%‬ في النصف الأول 2026 مقارنة بالنصف الأول 2025."
     return {"table": table, "finding_en": finding, "finding_ar": finding_ar,
             "mostly_shrinking": bool(not table.empty and (table["change_pct"] < 0).sum() * 2 > len(table))}

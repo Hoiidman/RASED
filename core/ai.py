@@ -17,8 +17,9 @@ SYSTEM = (
     "Use only the facts in FACTS_JSON. Quote numbers exactly with their source and period. "
     "If a fact is missing, say so. Licence data is not GDP or FDI; call it a 'licence-implied activity signal'. "
     "Give suggestions as options with trade-offs, not orders. Use neutral language on regional events "
-    "('regional disruption'). When most sectors or areas fell, call the best performers 'the most resilient', "
-    "never 'growing' or 'fastest-growing'. Write plain, direct prose a non-specialist can read, at most about 180 words. "
+    "('regional disruption'). When most sectors or areas fell, call only the top-ranked ones 'the most resilient', "
+    "never 'growing' or 'fastest-growing'. In Arabic, use the official Arabic names given in PROFILE "
+    "(activity_ar, area_ar) and Western digits. Write plain, direct prose a non-specialist can read, at most about 180 words. "
     "Use a short numbered list only for suggestions. No emoji, no em dashes, no 'Label:' bullet patterns. "
     "Answer in {lang}."
 )
@@ -72,6 +73,11 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
             cited.append(f"{label}: {_fmt(f[key])}")
             return _fmt(f[key])
         return "n/a"
+
+    if mode == "investor" and lang == "ar":
+        return _template_investor_ar(f, profile or {}, c), cited
+    if mode == "gov_actions" and lang == "ar":
+        return _template_gov_ar(c), cited
 
     if mode == "investor":
         p = profile or {}
@@ -138,6 +144,77 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
                                           if not isinstance(v, (dict, list)))
     cited = [f"{k}: {_fmt(v)}" for k, v in f.items() if not isinstance(v, (dict, list))]
     return text, cited
+
+
+LRE, PDF = "\u202a", "\u202c"  # keeps a signed number such as -20.2 left to right inside Arabic text
+
+
+def _template_investor_ar(f: dict, p: dict, c) -> str:
+    """Arabic fallback for the investor advisor (used when Claude is unavailable)."""
+    act = p.get("activity_ar") or p.get("activity", "نشاطك")
+    area = p.get("area_ar") or p.get("area", "منطقتك")
+    zone = p.get("zone_ar") or ("المنطقة الحرة" if p.get("zone") == "Free Zone" else "البر الرئيسي")
+    g = c("sector_growth_pct", f"نمو {act} (النصف الأول 2026 مقارنة بـ 2025، %)")
+    zone_note = c("zone_change_pct", f"تغير تسجيلات {zone} (النصف الأول 2026، %)")
+    lvl = {"high": "مرتفع", "moderate": "متوسط", "low": "منخفض"}.get(f.get("competition_level"), "متوسط")
+    growing = (f.get("sector_growth_pct") or 0) >= 0
+    fell, n_sec = (str(f.get("sectors_that_fell_h1_2026", "")).split(" of ") + [""])[:2]
+    sec_rank = str(f.get("sector_rank_by_change", "")).split(" of ")[0]
+    if growing:
+        trend = "أي أن الطلب في نمو"
+    elif fell.isdigit() and n_sec.isdigit() and int(fell) * 2 > int(n_sec) and sec_rank.isdigit() \
+            and int(sec_rank) * 2 <= int(n_sec):
+        trend = f"لكن {fell} من {n_sec} قطاعات تراجعت، وصمد هذا القطاع أفضل من معظمها"
+    else:
+        trend = "أي أن القطاع يتباطأ وستحتاج إلى ميزة واضحة تميزك"
+    reg_key = next((k for k in f if k.startswith("same_activity_licences_in_area")), None)
+    if reg_key:
+        here = c(reg_key, f"رخص {act} في {area} في سجل الدائرة (حتى مارس 2024)")
+        rank = c("area_rank_for_this_activity", f"ترتيب {area} في {act}")
+        rank = rank.replace(" of ", " من ").replace(" areas", " منطقة")
+        competition = f"يسجل السجل العام للدائرة {here} رخصة {act} في {area} (الترتيب {rank})، لذا فخطر ازدحام السوق هناك {lvl}. "
+    else:
+        n = c("new_businesses_all_sectors_in_area_last_12_months", f"المنشآت الجديدة في {area} (آخر 12 شهراً)")
+        competition = f"سُجلت {n} منشأة جديدة في {area} خلال آخر 12 شهراً، والمنافسة {lvl}. "
+    vo = f.get("virtual_office_share_fz_pct")
+    first = ("فكّر في مكتب افتراضي في المنطقة الحرة لإبقاء التكاليف الثابتة منخفضة حتى يتعافى الطلب"
+             if p.get("zone", "Mainland") == "Mainland" else
+             "ابدأ بمكتب مرن أو افتراضي" + (f"، كما تفعل {vo:.0f}% من الشركات الجديدة في المنطقة الحرة" if vo else ""))
+    second = (f"ابحث عن موقع في {area} بعدد أقل من المنافسين المباشرين" if lvl == "مرتفع"
+              else f"ما زال في {area} متسع لمنشآت جديدة، والافتتاح المبكر يساعد")
+    return (
+        f"#### {act} في {area}، {zone}\n\n"
+        f"تغيرت تسجيلات {act} بنسبة {LRE}{g}%{PDF} في النصف الأول من 2026 مقارنة بالعام السابق، {trend}. "
+        f"{competition}"
+        f"وتغيرت تسجيلات {zone} كلها بنسبة {LRE}{zone_note}%{PDF} في الفترة نفسها.\n\n"
+        "الخطر الرئيسي أن الاضطراب الإقليمي منذ مارس 2026 ما زال يكبح الطلب في البر الرئيسي. "
+        "وعادةً ما تكون أشهر رمضان والعيد والصيف أبطأ في التسجيلات الجديدة.\n\n"
+        "ما يمكنك فعله:\n\n"
+        f"1. {first}.\n"
+        f"2. {second}.\n"
+        "3. افتتح خارج رمضان، واحتفظ بسيولة لأشهر الصيف البطيئة.\n\n"
+        "استرشادي، مبني على بيانات عامة. ليس نصيحة مالية."
+    )
+
+
+def _template_gov_ar(c) -> str:
+    """Arabic fallback for the government recommendations (used when Claude is unavailable)."""
+    rr = c("renewal_rate", "معدل التجديد 2025 (%)")
+    lever = c("retained_per_pt", "منشآت يُحتفظ بها لكل نقطة تجديد إضافية")
+    vo = c("virtual_office_share", "حصة المكاتب الافتراضية من تسجيلات المنطقة الحرة (%)")
+    ml = c("mainland_change_pct", "تسجيلات البر الرئيسي، النصف الأول 2026 مقارنة بـ 2025 (%)")
+    return (
+        f"1. **حماية التجديدات.** هذا الإجراء الأكبر أثراً. معدل التجديد {rr}%، وكل نقطة إضافية تحافظ على نحو "
+        f"{lever} منشأة. تساعد رسائل التذكير الموجهة وتقسيط الرسوم والاتصال قبل 30 يوماً من الانتهاء. "
+        "يُقاس بمعدل التجديد الشهري مقابل المستهدف 95.3%.\n"
+        f"2. **دعم تعافي البر الرئيسي.** تغيرت تسجيلات البر الرئيسي بنسبة {LRE}{ml}%{PDF} في النصف الأول من 2026. "
+        "من الخيارات تمديد الإعفاء من الرسوم والغرامات 3 أشهر وتسريع رخص المنشآت الصغيرة والمتوسطة. "
+        "يُقاس بالتسجيلات الشهرية للبر الرئيسي مقابل السيناريو ب.\n"
+        f"3. **تحويل المكاتب الافتراضية إلى مقرات فعلية.** تمثل المكاتب الافتراضية {vo}% من التسجيلات الجديدة "
+        "في المنطقة الحرة، ما يعني حضوراً محلياً أقل. قد تشجع حوافز الإيجار أو باقات العمل المشترك على الانتقال. "
+        "يُقاس بحصة المكاتب الافتراضية ومعدل تجديد هذه الشركات.\n\n"
+        "هذه خيارات تقيّمها الدائرة، ولكل منها تكلفة. بيانات الرخص مؤشر وليست الناتج المحلي."
+    )
 
 
 def advise(mode: str, facts: dict, profile: dict | None = None, lang: str = "en") -> dict:

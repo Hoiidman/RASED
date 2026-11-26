@@ -1,4 +1,4 @@
-"""UI labels EN / AR (owner: Agent B). Headers and navigation only; content stays EN for now."""
+"""UI labels EN / AR (owner: Agent B): top bar, navigation and page questions. Page text uses i18n.tr()."""
 
 L = {
     "en": {
@@ -26,8 +26,6 @@ L = {
         "p_opportunities": "الفرص", "p_watchouts": "تنبيهات", "p_advisor": "مستشار أعمالي",
     },
 }
-
-LANG = {"v": "en"}  # set by main.py on each run
 
 TITLES_AR = {
     "overview": ("نظرة عامة", "ما الذي يتغير في اقتصاد عجمان؟"),

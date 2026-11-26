@@ -4,14 +4,17 @@ Plain editorial layout: no boxed cards, no emoji, hairline rules for structure.
 """
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from html import escape
 
 import streamlit as st
 
 from charts import BLACK, GOLD, GOLD_DARK, GREEN_TXT, MUTED, RED_TXT
+from i18n import is_ar, sig, lang as cur_lang, month, name, tr
 
 SEV = {"high": (RED_TXT, "High"), "medium": (GOLD_DARK, "Medium"), "low": (GREEN_TXT, "Low")}
+SEV_AR = {"high": "مرتفع", "medium": "متوسط", "low": "منخفض"}
 RULE = "#E1E3E5"  # AEBlack 100
 
 CSS = f"""
@@ -34,6 +37,8 @@ button[data-baseweb="tab"] p, div[data-testid="stMetricValue"] {{
 /* DS buttons: sm size 40px high, 20px horizontal padding; one solid (primary) per group */
 .stButton button, .stDownloadButton button, .stFormSubmitButton button {{
   min-height: 40px; padding: 0 20px; font-weight: 500; }}
+/* top-bar buttons are narrow columns: less padding, or "EN" and the icons are clipped */
+.st-key-topbar .stButton button, .st-key-topbar div[data-testid="stPopover"] button {{ padding: 0 8px; min-width: 0; }}
 header[data-testid="stHeader"] {{ background: transparent; }}
 /* no sidebar: language, portal, sync and sign-out live in the top bar */
 section[data-testid="stSidebar"], div[data-testid="stSidebarCollapsedControl"],
@@ -147,12 +152,12 @@ def _ago(ts: str) -> str:
         return ts
     m = int(d.total_seconds() // 60)
     if m < 1:
-        return "just now"
+        return tr("just now", "الآن")
     if m < 60:
-        return f"{m} min ago"
+        return tr(f"{m} min ago", f"قبل {m} دقيقة")
     if m < 60 * 48:
-        return f"{m // 60} h ago"
-    return f"{m // 1440} d ago"
+        return tr(f"{m // 60} h ago", f"قبل {m // 60} ساعة")
+    return tr(f"{m // 1440} d ago", f"قبل {m // 1440} يوم")
 
 
 def ago(ts: str) -> str:
@@ -160,13 +165,15 @@ def ago(ts: str) -> str:
 
 
 _NICE = {"kit_aggregates": "DED and Free Zone data", "ajman_open_data": "Ajman Open Data portal"}
+_NICE_AR = {"kit_aggregates": "بيانات الدائرة والمنطقة الحرة", "ajman_open_data": "بوابة عجمان للبيانات المفتوحة"}
 
 
 _MON_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 _MON_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
 
 
-def month_label(period: str, lang: str = "en") -> str:
+def month_label(period: str, lang: str | None = None) -> str:
+    lang = lang or cur_lang()
     try:
         y, m = period[:4], int(period[5:7])
     except (TypeError, ValueError):
@@ -176,8 +183,7 @@ def month_label(period: str, lang: str = "en") -> str:
 
 def freshness_line(official: dict | None, catalog):
     """One line under the top bar: is RASED's data as new as the official sources?"""
-    from labels import LANG
-    lang = LANG.get("v", "en")
+    lang = cur_lang()
     try:
         last = catalog.set_index("id")["last_period"]
         main, fz = month_label(str(last["new_reg_mainland"]), lang), month_label(str(last["new_reg_fz"]), lang)
@@ -204,29 +210,34 @@ def freshness_line(official: dict | None, catalog):
 
 def data_status(status: list[dict], update: str | None = None, official: dict | None = None):
     """Data-status panel (shown inside the top bar's popover): latest update, then one row per source."""
-    st.markdown("**Data status**")
+    st.markdown(tr("**Data status**", "**حالة البيانات**"))
     if update:
         st.caption(update)
     colour = {"ok": GREEN_TXT, "stale": GOLD_DARK, "error": RED_TXT}
     rows = []
     for s in status:
         state = s.get("status", "")
-        name = _NICE.get(s["source"], s["source"])
+        src = (_NICE_AR if is_ar() else _NICE).get(s["source"], s["source"])
         changed = s.get("last_changed")
         never = changed in (None, "", "Not synced")
-        when = "awaiting official access" if never else f"changed {_ago(changed)}"
-        label = "not connected" if never else {"ok": "up to date", "stale": "stale", "error": "error"}.get(state, state)
+        when = tr("awaiting official access", "بانتظار الوصول الرسمي") if never else tr(f"changed {_ago(changed)}",
+                                                                                        f"تغيّرت {_ago(changed)}")
+        states = {"ok": tr("up to date", "محدّثة"), "stale": tr("stale", "قديمة"), "error": tr("error", "خطأ")}
+        label = tr("not connected", "غير متصلة") if never else states.get(state, state)
         if never:
             state = "none"
         if s["source"] == "ajman_open_data":  # public API, checked live against our data (no key needed)
             if official:
                 state = "ok" if official["up_to_date"] else "stale"
-                label = "matches ours" if official["up_to_date"] else "has newer data"
-                when = f"latest {month_label(official['portal_latest'])}, checked {_ago(official['checked'])}"
+                label = (tr("matches ours", "مطابقة لبياناتنا") if official["up_to_date"]
+                         else tr("has newer data", "لديها بيانات أحدث"))
+                when = tr(f"latest {month_label(official['portal_latest'])}, checked {_ago(official['checked'])}",
+                          f"الأحدث {month_label(official['portal_latest'])}، فُحصت {_ago(official['checked'])}")
             else:
-                label, when = "public API", "check unavailable just now"
+                label = tr("public API", "واجهة عامة")
+                when = tr("check unavailable just now", "تعذّر الفحص حالياً")
         rows.append(f'<div class="r-ds-row"><span><span class="r-ds-dot" style="background:{colour.get(state, MUTED)}">'
-                    f'</span>{escape(name)}</span><span class="when">{label} · {escape(when)}</span></div>')
+                    f'</span>{escape(src)}</span><span class="when">{label} · {escape(when)}</span></div>')
     st.markdown("".join(rows), unsafe_allow_html=True)
 
 
@@ -243,20 +254,70 @@ def kpi(label: str, value: str, delta: float | None = None, note: str = "", delt
     d = ""
     if delta is not None:
         c = GREEN_TXT if delta >= 0 else RED_TXT
-        d = f'<div class="r-k-delta" style="color:{c}">{delta:+.1f}{delta_suffix}</div>'
+        d = f'<div class="r-k-delta" style="color:{c}"><bdi dir="ltr">{delta:+.1f}</bdi>{delta_suffix}</div>'
     st.markdown(f'<div class="r-k"><div class="r-k-label">{escape(label)}</div><div class="r-k-value">{value}</div>'
                 f'{d}<div class="r-k-note">{escape(note)}</div></div>', unsafe_allow_html=True)
 
 
+# Alert sentences come from a few fixed templates in core/alerts.py; these are their Arabic versions.
+_ALERT_AR = [
+    (r"Year-on-year change of ([+-]?[\d.,]+)% is outside the historical 5th–95th percentile range\.",
+     lambda m: f"التغير السنوي {sig(m[1] + '%')} خارج النطاق التاريخي المعتاد (بين المئين الخامس والخامس والتسعين)."),
+    (r"Latest complete month is outside the seasonal-naive approximate 80% band\.",
+     lambda m: "آخر شهر مكتمل خارج النطاق الموسمي المتوقع (نحو 80%)."),
+    (r"Virtual-office share changed ([+-]?[\d.,]+) percentage points in six months\.",
+     lambda m: f"تغيرت حصة المكاتب الافتراضية {sig(m[1])} نقطة مئوية خلال ستة أشهر."),
+    (r"Renewal rate is ([\d.,]+) points below its previous three-year mean\.",
+     lambda m: f"معدل التجديد أقل بـ {m[1]} نقطة من متوسطه في السنوات الثلاث السابقة."),
+    (r"^([+-]?[\d.,]+)% to ([+-]?[\d.,]+)% YoY$", lambda m: f"{sig(m[1] + '%')} إلى {sig(m[2] + '%')} سنوياً"),
+    (r"^([+-]?[\d.,]+)% YoY$", lambda m: f"{sig(m[1] + '%')} سنوياً"),
+    (r"^([\d.,]+) to ([\d.,]+)$", lambda m: f"{m[1]} إلى {m[2]}"),
+    (r"^([\d.,]+)% six months earlier$", lambda m: f"{m[1]}% قبل ستة أشهر"),
+    (r"^3-year mean ([\d.,]+)%$", lambda m: f"متوسط 3 سنوات {m[1]}%"),
+]
+
+
+def alert_text(text: str) -> str:
+    """Alert sentence in the current language (Arabic for the known templates, else unchanged)."""
+    if not is_ar():
+        return text
+    for pat, fn in _ALERT_AR:
+        m = re.fullmatch(pat, text.strip()) if pat.startswith("^") else re.search(pat, text)
+        if m:
+            return fn(m)
+    return text
+
+
 def alert_card(a: dict, compact: bool = True):
     c, lab = SEV.get(a["severity"], (MUTED, a["severity"]))
-    status = " · acknowledged" if a.get("status") == "acknowledged" else ""
+    if is_ar():
+        lab = SEV_AR.get(a["severity"], lab)
+    status = tr(" · acknowledged", " · تم الاستلام") if a.get("status") == "acknowledged" else ""
     if a.get("new"):
-        status += f' · <span style="color:{BLACK}">new since last sync</span>'
-    body = escape(a["what_happened"])
+        status += f' · <span style="color:{BLACK}">' + tr("new since last sync", "جديد منذ آخر مزامنة") + "</span>"
+    body = escape(alert_text(a["what_happened"]))
     if not compact:
-        body += f'<br>Expected {escape(a["expected"])}, actual <b style="color:{BLACK}">{escape(a["actual"])}</b>'
+        exp, act = escape(alert_text(a["expected"])), escape(alert_text(a["actual"]))
+        body += (f'<br>المتوقع {exp}، والفعلي <b style="color:{BLACK}">{act}</b>' if is_ar() else
+                 f'<br>Expected {exp}, actual <b style="color:{BLACK}">{act}</b>')
+    title = f"{name(a['group'])}، {month(a['period'])}" if is_ar() else f"{a['group']}, {a['period']}"
     st.markdown(
         f'<div class="r-alert"><div class="r-alert-sev" style="color:{c}">{lab}{status}</div>'
-        f'<div class="r-alert-title">{escape(a["group"])}, {escape(a["period"])}</div>'
+        f'<div class="r-alert-title">{escape(title)}</div>'
         f'<div class="r-alert-body">{body}</div></div>', unsafe_allow_html=True)
+
+
+def group_finding(gd: dict) -> str:
+    """The one-line finding for a group comparison. In Arabic it is rebuilt from the same table,
+    so the group's name uses the official Arabic spelling."""
+    if not is_ar():
+        return gd.get("finding_en", "")
+    t = gd.get("table")
+    if t is None or t.empty:
+        return gd.get("finding_ar") or gd.get("finding_en", "")
+    lead, fell, n = t.iloc[0], int((t["change_pct"] < 0).sum()), len(t)
+    pct = sig(f"{lead['change_pct']:+.1f}%")
+    if fell * 2 > n:  # most groups shrank: the top one is the most resilient, not "growing"
+        return (f"تراجعت {fell} من أصل {n} فئات. الأكثر صموداً: {name(lead['group'])} "
+                f"({pct} في النصف الأول 2026 مقارنة بالنصف الأول 2025).")
+    return f"{name(lead['group'])}: {pct} في النصف الأول 2026 مقارنة بالنصف الأول 2025."

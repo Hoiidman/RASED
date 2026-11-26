@@ -13,6 +13,7 @@ def get_drivers() -> list[dict]:
         status = "partial" if available else "data_needed"
         chart = rows[["period", "value"]].copy() if available and rows["group"].nunique() == 1 else None
         result.append({**{k: driver[k] for k in ("id", "name", "hypothesis", "proxy", "source", "test")},
+                       **{k: v for k, v in driver.items() if k.endswith("_ar")},  # Arabic text for the dashboard
                        "status": status, "result": "Observed proxy available; hypothesis testing and verified event context pending." if available else None,
                        "chart": chart})
     return result

@@ -46,3 +46,7 @@ API for grouped counts only (e.g. `group_by=date_format(startdate, 'yyyy-MM')`).
 offline script `scripts/build_competitors.py`: activity and area sit in two datasets, so it links them by
 licence number in memory and writes only counts per activity and area (under 5 removed) to
 `data/reference/competitors.csv`. Rerun it by hand when the register is updated.
+
+Arabic names for areas, activities, licence types and legal forms are the register's own Arabic fields
+(`areaar`, `activitiyar`, ...). `scripts/build_names_ar.py` asks the API for grouped English/Arabic name pairs
+only and writes `data/reference/names_ar.csv`; the dashboard uses it when it is switched to Arabic.

@@ -1,5 +1,9 @@
 - id: policy
   name: Government policy
+  name_ar: السياسات الحكومية
+  hypothesis_ar: قد تؤثر تغييرات السياسات المؤرخة في التسجيلات.
+  proxy_ar: التسجيلات الجديدة حول تواريخ السياسات الموثقة
+  source_ar: التسجيلات المجمعة وتقويم أحداث موثق
   hypothesis: Dated policy changes may affect registrations.
   proxy: New registrations around verified policy dates
   source: Aggregate registrations and verified event calendar
@@ -8,6 +12,10 @@
   needs_events: true
 - id: visa
   name: Visa and residency rules
+  name_ar: قواعد التأشيرات والإقامة
+  hypothesis_ar: قد تتغير تفضيلات التأسيس مع خيارات الإقامة.
+  proxy_ar: حصة المكاتب الافتراضية
+  source_ar: بيانات المنطقة الحرة المجمعة
   hypothesis: Setup preferences may shift with residency options.
   proxy: Virtual-office share
   source: Free Zone aggregate data
@@ -16,6 +24,10 @@
   needs_events: true
 - id: rent
   name: Rent and real estate
+  name_ar: الإيجارات والعقارات
+  hypothesis_ar: قد تشجع الإيجارات المرتفعة على المكاتب الافتراضية.
+  proxy_ar: مؤشر الإيجارات
+  source_ar: مطلوب مصدر رسمي لبيانات الإيجار
   hypothesis: Higher rents may encourage virtual offices.
   proxy: Rental index
   source: Official rental dataset required
@@ -23,6 +35,10 @@
   indicator: rent_index
 - id: infrastructure
   name: Infrastructure
+  name_ar: البنية التحتية
+  hypothesis_ar: قد تدعم البنية التحتية الجديدة النشاط التجاري.
+  proxy_ar: التسجيلات حسب المنطقة وتواريخ المشاريع الموثقة
+  source_ar: مطلوب بيانات المناطق المجمعة وتقويم المشاريع
   hypothesis: New infrastructure may support business activity.
   proxy: Area-level registrations and verified project dates
   source: Aggregate area data and project calendar required
@@ -32,6 +48,10 @@
   needs_events: true
 - id: competition
   name: Competition between emirates
+  name_ar: المنافسة بين الإمارات
+  hypothesis_ar: قد تؤثر عروض الإمارات الأخرى في اختيار مكان التأسيس.
+  proxy_ar: تسجيلات قابلة للمقارنة وعروض مؤرخة في الإمارات
+  source_ar: مطلوب بيانات قابلة للمقارنة من الإمارات الأخرى
   hypothesis: Other emirates' offers may influence business setup choices.
   proxy: Comparable registrations and dated offers across emirates
   source: Comparable other-emirate data required
@@ -39,6 +59,10 @@
   indicator: other_emirate_registrations
 - id: population
   name: Population growth
+  name_ar: النمو السكاني
+  hypothesis_ar: قد يدعم ازدياد السكان الخدمات المحلية.
+  proxy_ar: السكان وتسجيلات الخدمات
+  source_ar: مطلوب مصدر رسمي لبيانات السكان
   hypothesis: More residents may support local services.
   proxy: Population and service registrations
   source: Official population dataset required
@@ -46,6 +70,10 @@
   indicator: population
 - id: corp_tax
   name: Corporate tax
+  name_ar: ضريبة الشركات
+  hypothesis_ar: قد تؤثر السياسة الضريبية في خيارات تأسيس الأعمال.
+  proxy_ar: تواريخ السياسات الموثقة وتوزيع الأشكال القانونية
+  source_ar: مطلوب مصادر سياسات موثقة وبيانات مجمعة للأشكال القانونية
   hypothesis: Tax policy may affect business setup choices.
   proxy: Verified policy dates and legal-form mix
   source: Verified policy sources and legal-form aggregates required
@@ -55,6 +83,10 @@
   needs_events: true
 - id: licence_fees
   name: Licence fees (fee elasticity)
+  name_ar: رسوم الرخص (مرونة الرسوم)
+  hypothesis_ar: قد تستجيب التسجيلات الجديدة والتجديدات لتغير رسوم الرخص والغرامات.
+  proxy_ar: التسجيلات والتجديدات قبل تغييرات الرسوم المؤرخة وبعدها
+  source_ar: مطلوب سجل رسوم الدائرة مع تواريخ السريان
   hypothesis: New registrations and renewals may respond to changes in licence fees and fines.
   proxy: Registrations and renewals before and after dated fee changes
   source: DED fee schedule history with effective dates required

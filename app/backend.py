@@ -37,7 +37,9 @@ def engine_summary() -> str:
         return "Mock data"
     real = sorted(k for k, v in ENGINE_USED.items() if v == "real")
     mock = sorted(k for k, v in ENGINE_USED.items() if v != "real")
-    return f"Live engine: {len(real)} real, {len(mock)} on mock" + (f" ({', '.join(mock)})" if mock else "")
+    from i18n import tr
+    return (tr(f"Live engine: {len(real)} real, {len(mock)} on mock", f"المحرك المباشر: {len(real)} فعلية، {len(mock)} تجريبية")
+            + (f" ({', '.join(mock)})" if mock else ""))
 
 
 _ALERT_KEYS = {"id", "indicator", "group", "period", "what_happened", "expected", "actual", "severity",
@@ -142,7 +144,7 @@ def _series(v, ids, group_type, start, end): return _tagged("get_series", list(i
 def _kpis(v): return _tagged("get_kpis")
 
 
-@st.cache_data(ttl=_DAY, show_spinner="Running the forecast")
+@st.cache_data(ttl=_DAY, show_spinner=False)  # spinner shown by get_forecast, in the visitor's language
 def _forecast(v, indicator, recovery_start, recovery_len, depth_pct):
     return _tagged("get_forecast", indicator, recovery_start, recovery_len, depth_pct)
 
@@ -167,7 +169,9 @@ def get_catalog(): return _untag("get_catalog", _catalog(data_version()))
 def get_series(ids, group_type=None, start=None, end=None): return _untag("get_series", _series(data_version(), tuple(ids), group_type, start, end))
 def get_kpis(): return _untag("get_kpis", _kpis(data_version()))
 def get_forecast(indicator, recovery_start=6, recovery_len=6, depth_pct=100):
-    return _untag("get_forecast", _forecast(data_version(), indicator, recovery_start, recovery_len, depth_pct))
+    from i18n import tr
+    with st.spinner(tr("Running the forecast", "جارٍ حساب التوقعات")):
+        return _untag("get_forecast", _forecast(data_version(), indicator, recovery_start, recovery_len, depth_pct))
 def simulate_renewal(delta_pts): return _untag("simulate_renewal", _renewal(data_version(), delta_pts))
 def group_differences(dim): return _untag("group_differences", _groups(data_version(), dim))
 def get_alerts(severity=None): return _untag("get_alerts", _alerts(data_version(), severity))
