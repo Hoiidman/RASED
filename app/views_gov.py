@@ -22,7 +22,7 @@ def _title(page):
 
 
 def _plot(fig, key=None):
-    st.plotly_chart(fig, width="stretch", config=PC, key=key)
+    st.plotly_chart(fig, width="stretch", config=ch.chart_config(), key=key)
 
 
 # ------------------------------------------------------------------ Overview
@@ -73,11 +73,11 @@ def _alert_fig(a):
     """Best-effort mini chart for an alert; None if the series isn't available. Cached per data version,
     so the 25 alert charts are built once, not on every click on the page."""
     return _alert_fig_cached(be.data_version(), a["indicator"], a["group"], a.get("group_type"), a["period"],
-                             a["severity"])
+                             a["severity"], ch.is_mobile())
 
 
 @st.cache_data(ttl=24 * 3600, show_spinner=False)
-def _alert_fig_cached(v, indicator, group, group_type, period, severity):
+def _alert_fig_cached(v, indicator, group, group_type, period, severity, mobile=False):
     a = {"indicator": indicator, "group": group, "group_type": group_type, "period": period, "severity": severity}
     try:
         ind, grp = a["indicator"], a["group"]
@@ -369,16 +369,23 @@ def sectors(lang):
     q.columns = [c.replace("Q", " Q") for c in q.columns]
     yoy = ((q / q.shift(4, axis=1) - 1) * 100).iloc[:, 4:].dropna(axis=1, how="all")
     yoy = yoy.loc[yoy.iloc[:, -1].sort_values(ascending=False).index]
+    mobile = ch.is_mobile()
+    if mobile:  # a phone fits about three quarters next to the sector names
+        yoy = yoy.iloc[:, -3:]
     fig = go.Figure(go.Heatmap(
         z=yoy.values, x=list(yoy.columns), y=list(yoy.index), zmid=0, zmin=-40, zmax=40,
         colorscale=[[0, ch.RED], [0.5, "#FFFFFF"], [1, ch.GREEN]],
-        text=[[f"{v:+.0f}%" for v in row] for row in yoy.values], texttemplate="%{text}",
-        textfont=dict(size=12), hovertemplate="%{y} · %{x}: %{z:+.1f}% YoY<extra></extra>",
-        colorbar=dict(title="YoY", ticksuffix="%", thickness=12)))
+        text=[["" if pd.isna(v) else f"{v:+.0f}%" for v in row] for row in yoy.values], texttemplate="%{text}",
+        textfont=dict(size=11 if mobile else 12), hovertemplate="%{y} · %{x}: %{z:+.1f}% YoY<extra></extra>",
+        showscale=not mobile, colorbar=dict(title="YoY", ticksuffix="%", thickness=12)))
     ch.style(fig, "Which sectors are heating up or cooling down",
-             "New registrations, % change vs same quarter last year", 440, legend=False)
+             "New registrations, % change vs same quarter last year",
+             max(300, 30 * len(yoy) + 60) if mobile else 440, legend=False)
     fig.update_layout(hovermode="closest")
-    fig.update_xaxes(showline=False, ticks="")
+    fig.update_xaxes(showline=False, ticks="", side="top" if mobile else "bottom")
+    if mobile:  # short sector names on the axis; the full name stays in the tooltip
+        fig.update_yaxes(tickvals=list(yoy.index),
+                         ticktext=[n if len(n) <= 18 else n[:17].rstrip() + "…" for n in yoy.index])
     _plot(fig)
     why = {"IT & e-commerce": "Digital economy growth that diversifies Ajman beyond trading",
            "Construction & contracting": "Watch the project pipeline; affects jobs and suppliers",

@@ -74,13 +74,14 @@ if lang == "ar":  # right-to-left text in the main area; charts keep left-to-rig
                 # sentences and numbers like +7.1% keep their punctuation in place inside RTL
                 ".block-container p,.block-container li,.r-k-value,.r-k-delta,.r-k-note,.r-k-label,"
                 ".r-alert-title,.r-alert-body,.r-meta,.page-q{unicode-bidi:plaintext}"
-                ".r-fresh{unicode-bidi:plaintext}.r-ds-dot{margin-right:0;margin-left:8px}"
+                ".r-fresh{unicode-bidi:plaintext}.r-ds-dot{margin-right:0;margin-left:8px}.r-portal{text-align:right}"
                 ".r-tag{margin-left:0;margin-right:14px}.r-title .r-ar{margin-left:0;margin-right:8px}</style>",
                 unsafe_allow_html=True)
 
 # --- top bar: title, then icon buttons on the right ---
 signed_in = portal == "gov" and st.session_state.get("gov_ok")
-cols = st.columns([8, 0.6, 0.6, 2, 0.6, 0.6] if signed_in else [8, 0.6, 0.6, 2], vertical_alignment="center")
+topbar = st.container(key="topbar")  # keyed so the phone layout can keep its buttons on one row
+cols = topbar.columns([8, 0.6, 0.6, 2, 0.6, 0.6] if signed_in else [8, 0.6, 0.6, 2], vertical_alignment="center")
 with cols[0]:
     ui.header(t["gov"] if portal == "gov" else t["inv"], t["tagline"], rule=False)
 cols[1].button("ع" if lang == "en" else "EN", key="lang_toggle", on_click=_toggle_lang,

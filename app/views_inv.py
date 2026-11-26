@@ -20,7 +20,7 @@ def _title(page):
 
 
 def _plot(fig):
-    st.plotly_chart(fig, width="stretch", config=PC)
+    st.plotly_chart(fig, width="stretch", config=ch.chart_config())
 
 
 def _activity_monthly():

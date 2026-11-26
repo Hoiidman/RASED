@@ -81,6 +81,44 @@ button[data-baseweb="tab"] p {{ font-size: 16px; line-height: 24px; font-weight:
 button[data-baseweb="tab"][aria-selected="true"] p {{ color: {BLACK}; font-weight: 700; }}
 div[data-baseweb="tab-highlight"] {{ background-color: {GOLD_DARK}; }}
 div[data-testid="stMetricValue"] {{ color: {BLACK}; }}
+/* ---- phones (Streamlit stacks every column below 640px) ---- */
+@media (max-width: 640px) {{
+  .block-container {{ padding: 12px 16px 40px 16px; }}
+  /* top bar: title on its own line, then the buttons side by side instead of five full-width rows */
+  .st-key-topbar div[data-testid="stHorizontalBlock"] {{ flex-wrap: wrap !important; flex-direction: row !important; gap: 8px !important; }}
+  .st-key-topbar div[data-testid="stColumn"] {{ width: auto !important; min-width: 0 !important; flex: 0 0 auto !important; }}
+  .st-key-topbar div[data-testid="stColumn"]:first-child {{ flex: 1 1 100% !important; }}
+  .st-key-topbar div[data-testid="stColumn"]:nth-child(4) {{ flex: 1 1 auto !important; }}
+  .st-key-topbar .stButton button, .st-key-topbar div[data-testid="stPopover"] button {{ padding: 0 12px; min-height: 38px; }}
+  /* Streamlit pulls markdown up by 16px; inside the wrapped top bar that hides the title under the buttons */
+  .st-key-topbar div[data-testid="stColumn"]:first-child {{ padding-bottom: 18px; }}
+  .r-head {{ flex-wrap: wrap; align-items: baseline; gap: 0 12px; }}
+  .r-portal {{ flex-basis: 100%; }}
+  .r-title {{ font-size: 22px; line-height: 28px; }}
+  .r-tag {{ display: none; }}
+  .r-fresh {{ font-size: 13px; line-height: 18px; }}
+  .page-q {{ font-size: 20px; line-height: 28px; margin: 4px 0 12px 0; }}
+  .stMarkdown p, .stMarkdown li {{ font-size: 15px; line-height: 23px; }}
+  /* tabs: smaller and closer together; the row still scrolls sideways */
+  div[data-baseweb="tab-list"] {{ gap: 12px; }}
+  button[data-baseweb="tab"] p {{ font-size: 14px; }}
+  /* headline figures two per row instead of one per screen */
+  /* (only rows of figures: a layout row that holds a nested row, like the policy simulator, still stacks) */
+  div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] .r-k):not(:has(div[data-testid="stHorizontalBlock"])),
+  div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] div[data-testid="stMetric"]):not(:has(div[data-testid="stHorizontalBlock"])) {{
+    flex-wrap: wrap !important; flex-direction: row !important; gap: 12px 16px !important; }}
+  div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] .r-k):not(:has(div[data-testid="stHorizontalBlock"])) > div[data-testid="stColumn"],
+  div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] div[data-testid="stMetric"]):not(:has(div[data-testid="stHorizontalBlock"])) > div[data-testid="stColumn"] {{
+    flex: 1 1 calc(50% - 8px) !important; min-width: calc(50% - 8px) !important; width: calc(50% - 8px) !important; }}
+  /* an odd one out (5 headline figures, 3 advisor figures) takes the full last row */
+  div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] .r-k):not(:has(div[data-testid="stHorizontalBlock"])) > div[data-testid="stColumn"]:last-child:nth-child(odd),
+  div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] div[data-testid="stMetric"]):not(:has(div[data-testid="stHorizontalBlock"])) > div[data-testid="stColumn"]:last-child:nth-child(odd) {{
+    flex-basis: 100% !important; width: 100% !important; }}
+  div[data-testid="stMetricDelta"] div, div[data-testid="stMetricLabel"] p {{ white-space: normal !important; overflow: visible !important; }}
+  .r-k-value {{ font-size: 24px; line-height: 30px; }}
+  div[data-testid="stMetricValue"] {{ font-size: 24px; }}
+  .r-alert-title {{ font-size: 15px; line-height: 22px; }}
+}}
 </style>
 """
 

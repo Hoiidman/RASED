@@ -1,6 +1,8 @@
 """Plotly chart helpers — every chart in RASED goes through here (UAE Design System palette)."""
 from __future__ import annotations
 
+import textwrap
+
 import pandas as pd
 import plotly.graph_objects as go
 
@@ -25,18 +27,46 @@ def dt(periods) -> pd.Series:
     return pd.to_datetime(s.where(s.str.len() > 4, s + "-01") + "-01")
 
 
+def is_mobile() -> bool:
+    """Phone browser? Read from this visitor's User-Agent, so each visitor gets charts sized for their screen."""
+    try:
+        import streamlit as st
+        ua = st.context.headers.get("User-Agent") or ""
+    except Exception:  # noqa: BLE001 - no browser session (tests, API): desktop layout
+        return False
+    return "Mobi" in ua or "iPhone" in ua
+
+
+def chart_config() -> dict:
+    """Plotly toolbar on desktop; none on phones, where it covers the chart title."""
+    return {**CHART_CONFIG, "displayModeBar": False} if is_mobile() else CHART_CONFIG
+
+
+def _wrap(text: str, width: int) -> list[str]:
+    return textwrap.wrap(text, width) or [""]
+
+
 def style(fig: go.Figure, title: str = "", subtitle: str = "", height: int = 380, legend: bool = True) -> go.Figure:
-    t = f"<b>{title}</b>" + (f"<br><span style='font-size:14px;color:{MUTED};font-family:{FONT}'>{subtitle}</span>"
-                             if subtitle else "")
+    mobile = is_mobile()
+    if mobile:  # a phone chart is ~340px wide: wrap the title and subtitle instead of letting them run off the edge
+        tl, sl = (_wrap(title, 34) if title else []), (_wrap(subtitle, 46) if subtitle else [])
+        t = "<br>".join(f"<b>{x}</b>" for x in tl) + "".join(
+            f"<br><span style='font-size:12px;color:{MUTED};font-family:{FONT}'>{x}</span>" for x in sl)
+        top = 16 + 21 * len(tl) + 17 * len(sl) if (tl or sl) else 10
+        height = height + max(0, top - (84 if subtitle else 60))
+    else:
+        t = f"<b>{title}</b>" + (f"<br><span style='font-size:14px;color:{MUTED};font-family:{FONT}'>{subtitle}</span>"
+                                 if subtitle else "")
+        top = 84 if subtitle else 60
     fig.update_layout(
-        title=dict(text=t, x=0, xanchor="left", y=0.97, yanchor="top",
-                   font=dict(family=HEAD_FONT, size=18, color=BLACK)),
-        font=dict(family=FONT, size=13, color=BLACK),
+        title=dict(text=t, x=0, xanchor="left", y=1 - 12 / height, yanchor="top",
+                   font=dict(family=HEAD_FONT, size=15 if mobile else 18, color=BLACK)),
+        font=dict(family=FONT, size=11 if mobile else 13, color=BLACK),
         paper_bgcolor=PAGE_BG, plot_bgcolor=PAGE_BG, height=height,
-        margin=dict(l=10, r=20, t=84 if subtitle else 60, b=10),
+        margin=dict(l=4 if mobile else 10, r=8 if mobile else 20, t=top, b=10),
         showlegend=legend,
         legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="left", x=0, bgcolor="rgba(0,0,0,0)",
-                    font=dict(size=12)),
+                    font=dict(size=11 if mobile else 12)),
         hoverlabel=dict(bgcolor="white", bordercolor=GOLD, font=dict(family=FONT, color=BLACK)),
         hovermode="x unified",
     )
@@ -47,6 +77,8 @@ def style(fig: go.Figure, title: str = "", subtitle: str = "", height: int = 380
 
 
 def add_shock(fig: go.Figure, end: str = "2027-12", label: str = "Regional disruption from Mar 2026") -> go.Figure:
+    if is_mobile() and label.startswith("Regional disruption"):
+        label = "Disruption from Mar 2026"
     x0, x1 = dt([SHOCK_START]).iloc[0], dt([end]).iloc[0]
     fig.add_shape(type="rect", xref="x", yref="paper", x0=x0, x1=x1, y0=0, y1=1,
                   fillcolor="rgba(200,16,46,0.06)", line_width=0, layer="below")
@@ -79,12 +111,16 @@ def registrations_chart(df: pd.DataFrame, title: str, subtitle: str = "", height
                                  showlegend=False, hoverinfo="skip"))
         lab = f"<b>{g}</b>" + (f"<br><span style='color:{GREEN_TXT if chg >= 0 else RED_TXT}'>{chg:+.0f}% H1 2026</span>"
                                if chg is not None else "")
-        fig.add_annotation(x=x.iloc[-1], y=v[-1], text=lab, showarrow=False, xanchor="left", xshift=10,
-                           align="left", font=dict(size=13, color=c))
+        fig.add_annotation(x=x.iloc[-1], y=v[-1], text=lab, showarrow=False, xanchor="left", xshift=8,
+                           align="left", font=dict(size=11 if is_mobile() else 13, color=c))
     add_shock(fig, end=df[~df["is_partial"]]["period"].max())
     style(fig, title, subtitle, height, legend=False)
-    fig.update_layout(margin=dict(r=110))
+    fig.update_layout(margin=dict(r=84 if is_mobile() else 110))
     fig.update_yaxes(title=None, tickformat=",", rangemode="tozero")
+    full = df[~df["is_partial"]]
+    if not full.empty:  # stop the axis at the last month instead of an empty stretch to the next tick year
+        fig.update_xaxes(range=[dt([full["period"].min()]).iloc[0],
+                                dt([full["period"].max()]).iloc[0] + pd.DateOffset(days=20)])
     return fig
 
 
