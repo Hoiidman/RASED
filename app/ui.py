@@ -11,7 +11,7 @@ from html import escape
 import streamlit as st
 
 from charts import BLACK, GOLD, GOLD_DARK, GREEN_TXT, MUTED, RED_TXT
-from i18n import is_ar, sig, lang as cur_lang, month, name, tr
+from i18n import count, is_ar, sig, lang as cur_lang, month, name, tr
 
 SEV = {"high": (RED_TXT, "High"), "medium": (GOLD_DARK, "Medium"), "low": (GREEN_TXT, "Low")}
 SEV_AR = {"high": "مرتفع", "medium": "متوسط", "low": "منخفض"}
@@ -154,10 +154,10 @@ def _ago(ts: str) -> str:
     if m < 1:
         return tr("just now", "الآن")
     if m < 60:
-        return tr(f"{m} min ago", f"قبل {m} دقيقة")
+        return tr(f"{m} min ago", "قبل " + count(m, "دقيقة", "دقائق", dual="دقيقتين"))
     if m < 60 * 48:
-        return tr(f"{m // 60} h ago", f"قبل {m // 60} ساعة")
-    return tr(f"{m // 1440} d ago", f"قبل {m // 1440} يوم")
+        return tr(f"{m // 60} h ago", "قبل " + count(m // 60, "ساعة", "ساعات", dual="ساعتين"))
+    return tr(f"{m // 1440} d ago", "قبل " + count(m // 1440, "يوم", "أيام", "يوماً", "يومين"))
 
 
 def ago(ts: str) -> str:
@@ -318,6 +318,6 @@ def group_finding(gd: dict) -> str:
     lead, fell, n = t.iloc[0], int((t["change_pct"] < 0).sum()), len(t)
     pct = sig(f"{lead['change_pct']:+.1f}%")
     if fell * 2 > n:  # most groups shrank: the top one is the most resilient, not "growing"
-        return (f"تراجعت {fell} من أصل {n} فئات. الأكثر صموداً: {name(lead['group'])} "
+        return (f"تراجعت {fell} من أصل {count(n, 'فئة', 'فئات')}. الأكثر صموداً: {name(lead['group'])} "
                 f"({pct} في النصف الأول 2026 مقارنة بالنصف الأول 2025).")
     return f"{name(lead['group'])}: {pct} في النصف الأول 2026 مقارنة بالنصف الأول 2025."

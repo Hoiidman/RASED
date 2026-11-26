@@ -62,7 +62,13 @@ def chart_config() -> dict:
 
 
 def _wrap(text: str, width: int) -> list[str]:
-    return textwrap.wrap(text, width) or [""]
+    """Wrap to at most `width` characters, with lines of similar length (no lone last word)."""
+    lines = textwrap.wrap(text, width) or [""]
+    if len(lines) > 1:
+        even = textwrap.wrap(text, -(-len(text) // len(lines)) + 4)
+        if len(even) == len(lines):
+            lines = even
+    return lines
 
 
 def _has_dates(fig: go.Figure) -> bool:
@@ -147,7 +153,12 @@ def registrations_chart(df: pd.DataFrame, title: str, subtitle: str = "", height
         chg = (h26 / h25 - 1) * 100 if h25 else None
         fig.add_trace(go.Scatter(x=[x.iloc[-1]], y=[v[-1]], mode="markers", marker=dict(color=c, size=9),
                                  showlegend=False, hoverinfo="skip"))
-        h1 = tr(f"{chg:+.0f}% H1 2026", rtl(f"{sig(f'{chg:+.0f}%')} النصف الأول 2026")) if chg is not None else ""
+        if chg is None:
+            h1 = ""
+        elif is_ar() and is_mobile():  # narrow phone margin: the number on one line, the period on the next
+            h1 = f"{sig(f'{chg:+.0f}%')}<br>{rtl('النصف الأول 2026')}"
+        else:
+            h1 = tr(f"{chg:+.0f}% H1 2026", rtl(f"{sig(f'{chg:+.0f}%')} النصف الأول 2026"))
         lab = f"<b>{name(g)}</b>" + (f"<br><span style='color:{GREEN_TXT if chg >= 0 else RED_TXT}'>{h1}</span>"
                                      if chg is not None else "")
         fig.add_annotation(x=x.iloc[-1], y=v[-1], text=lab, showarrow=False, xanchor="left", xshift=8,

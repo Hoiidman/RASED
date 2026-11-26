@@ -28,7 +28,8 @@ MODE_TASK = {
     "gov_actions": "Recommend 3 actions DED could take now. For each: the action, why (cite facts), how to measure it.",
     "briefing": "Write a monthly briefing for DED leadership: what changed, why it may have changed, what to watch.",
     "investor": "Advise this investor (PROFILE) on their sector and area: outlook, competition, risks, 3 tailored suggestions. "
-                "This forecasts their sector and area, not their business. End with 'Indicative, not financial advice.'",
+                "This forecasts their sector and area, not their business. End with 'Indicative, not financial advice.' "
+                "(in Arabic: 'استرشادي، وليس نصيحة مالية.')",
     "theme": "Explain what the facts mean for Ajman under the given theme in 3 bullets.",
 }
 
@@ -47,12 +48,18 @@ def _claude(mode: str, facts: dict, profile: dict | None, lang: str) -> str | No
             + (f"PROFILE:\n{json.dumps(profile, ensure_ascii=False)}\n" if profile else ""))
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=1500,
-        output_config={"effort": "low"},  # fast replies for a live demo
+        # Room for a full answer: Arabic takes more tokens than English, and a 1,500 cap cut Arabic answers off.
+        max_tokens=4000,
+        # Thinking off (Haiku 5.5 allows it at effort high or below): faster replies for a live demo, and no
+        # thinking tokens eating into the answer's budget.
+        thinking={"type": "disabled"},
+        output_config={"effort": "low"},
         system=SYSTEM.format(lang="Arabic" if lang == "ar" else "English"),
         messages=[{"role": "user", "content": user}],
     )
-    if resp.stop_reason == "refusal":
+    if resp.stop_reason in ("refusal", "max_tokens"):  # declined, or cut off mid-sentence: use the template
+        import logging
+        logging.getLogger("rased.ai").warning("Claude answer unusable (%s), using the template", resp.stop_reason)
         return None
     text = "".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
     return text or None
@@ -149,6 +156,16 @@ def _template(mode: str, facts: dict, profile: dict | None, lang: str) -> tuple[
 LRE, PDF = "\u202a", "\u202c"  # keeps a signed number such as -20.2 left to right inside Arabic text
 
 
+def _count_ar(n, sing: str, plural: str) -> str:
+    """Arabic counted noun: plural for 3 to 10 ('5 رخص'), singular otherwise ('14 رخصة')."""
+    import re
+    digits = re.findall(r"\d+", str(n).replace(",", ""))  # 'أقل من 5' counts as 5
+    if not digits:
+        return f"{n} {sing}"
+    k = int(digits[-1])
+    return f"{n} {plural}" if 3 <= k % 100 <= 10 else f"{n} {sing}"
+
+
 def _template_investor_ar(f: dict, p: dict, c) -> str:
     """Arabic fallback for the investor advisor (used when Claude is unavailable)."""
     act = p.get("activity_ar") or p.get("activity", "نشاطك")
@@ -164,18 +181,20 @@ def _template_investor_ar(f: dict, p: dict, c) -> str:
         trend = "أي أن الطلب في نمو"
     elif fell.isdigit() and n_sec.isdigit() and int(fell) * 2 > int(n_sec) and sec_rank.isdigit() \
             and int(sec_rank) * 2 <= int(n_sec):
-        trend = f"لكن {fell} من {n_sec} قطاعات تراجعت، وصمد هذا القطاع أفضل من معظمها"
+        trend = f"لكن {fell} من {_count_ar(n_sec, 'قطاع', 'قطاعات')} تراجعت، وصمد هذا القطاع أفضل من معظمها"
     else:
         trend = "أي أن القطاع يتباطأ وستحتاج إلى ميزة واضحة تميزك"
     reg_key = next((k for k in f if k.startswith("same_activity_licences_in_area")), None)
     if reg_key:
-        here = c(reg_key, f"رخص {act} في {area} في سجل الدائرة (حتى مارس 2024)")
-        rank = c("area_rank_for_this_activity", f"ترتيب {area} في {act}")
-        rank = rank.replace(" of ", " من ").replace(" areas", " منطقة")
-        competition = f"يسجل السجل العام للدائرة {here} رخصة {act} في {area} (الترتيب {rank})، لذا فخطر ازدحام السوق هناك {lvl}. "
+        here = c(reg_key, f"رخص {act} في {area} في سجل الدائرة (حتى مارس 2024)").replace("fewer than 5", "أقل من 5")
+        rank = c("area_rank_for_this_activity", f"ترتيب {area} في {act}").replace(
+            "not in the top areas", "خارج المناطق الأعلى")
+        rank = (lambda a: f"{a[0]} من {_count_ar(a[1].replace(' areas', ''), 'منطقة', 'مناطق')}" if len(a) == 2
+                else a[0])(rank.split(" of "))
+        competition = f"يسجل السجل العام للدائرة {_count_ar(here, 'رخصة', 'رخص')} ({act}) في {area} (الترتيب {rank})، لذا فخطر ازدحام السوق هناك {lvl}. "
     else:
         n = c("new_businesses_all_sectors_in_area_last_12_months", f"المنشآت الجديدة في {area} (آخر 12 شهراً)")
-        competition = f"سُجلت {n} منشأة جديدة في {area} خلال آخر 12 شهراً، والمنافسة {lvl}. "
+        competition = f"سُجلت {_count_ar(n, 'منشأة جديدة', 'منشآت جديدة')} في {area} خلال آخر 12 شهراً، والمنافسة {lvl}. "
     vo = f.get("virtual_office_share_fz_pct")
     first = ("فكّر في مكتب افتراضي في المنطقة الحرة لإبقاء التكاليف الثابتة منخفضة حتى يتعافى الطلب"
              if p.get("zone", "Mainland") == "Mainland" else
@@ -221,7 +240,9 @@ def advise(mode: str, facts: dict, profile: dict | None = None, lang: str = "en"
     tpl_text, cited = _template(mode, facts, profile, lang)
     try:
         text = _claude(mode, facts, profile, lang)
-    except Exception:  # noqa: BLE001 - offline / bad key / API error -> template
+    except Exception as e:  # noqa: BLE001 - offline / bad key / API error -> template
+        import logging  # the error type only, never the key or the prompt
+        logging.getLogger("rased.ai").warning("Claude unavailable, using the template: %s", type(e).__name__)
         text = None
     if text:
         return {"text": text, "cited_facts": cited, "engine": "claude"}

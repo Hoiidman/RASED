@@ -13,7 +13,7 @@ import backend as be
 import charts as ch
 import ui
 from core import ai
-from i18n import MONTHS_AR, MONTHS_EN, is_ar, lang as cur_lang, month, name, name_ar, sig, tr
+from i18n import MONTHS_AR, count, MONTHS_EN, is_ar, lang as cur_lang, month, name, name_ar, sig, tr
 from labels import TITLES, TITLES_AR
 
 PC = ch.CHART_CONFIG
@@ -61,7 +61,7 @@ def opportunities(lang):
     if _shrinking(act):
         fell = int((act["change_pct"] < 0).sum())
         ui.section(tr(f"Most resilient sectors, H1 2026 vs H1 2025 ({fell} of {len(act)} sectors fell)",
-                      f"القطاعات الأكثر صموداً، النصف الأول 2026 مقارنة بـ 2025 (تراجع {fell} من {len(act)} قطاعات)"))
+                      f"القطاعات الأكثر صموداً، النصف الأول 2026 مقارنة بـ 2025 (تراجع {fell} من {count(len(act), 'قطاع', 'قطاعات', 'قطاعاً')})"))
     else:
         ui.section(tr("Fastest-growing sectors, H1 2026 vs H1 2025",
                       "القطاعات الأسرع نمواً، النصف الأول 2026 مقارنة بـ 2025"))
@@ -73,7 +73,7 @@ def opportunities(lang):
         with col:
             ui.kpi(name(r["group"]), f"{r['change_pct']:+.0f}%", None,
                    tr(f"Competition {lvl}: {last12:,} new licences in 12 months",
-                      f"المنافسة {COMP_AR.get(lvl, lvl)}: {last12:,} رخصة جديدة خلال 12 شهراً"))
+                      f"المنافسة {COMP_AR.get(lvl, lvl)}: {count(last12, 'رخصة جديدة', 'رخص جديدة')} خلال 12 شهراً"))
             st.plotly_chart(ch.sparkline(s["value"].tail(18)), width="stretch", config={"displayModeBar": False})
 
     c1, c2 = st.columns(2, gap="large")
@@ -171,7 +171,9 @@ def advisor(lang):
     with st.form("advisor", border=False):
         c1, c2, c3, c4 = st.columns(4)
         activity = c1.selectbox(tr("Business activity", "النشاط التجاري"), acts, index=pick, format_func=name)
-        area = c2.selectbox(tr("Area", "المنطقة"), areas, index=0, format_func=name)
+        # default to a named area (sorting in Arabic would otherwise put "Other" first)
+        first_area = areas.index(min((a for a in areas if a not in ("Other", "Unknown")), default=areas[0]))
+        area = c2.selectbox(tr("Area", "المنطقة"), areas, index=first_area, format_func=name)
         zone = c3.selectbox(tr("Setup", "مكان التأسيس"), list(ZONES), format_func=lambda z: ZONES[z] if is_ar() else z)
         size = c4.selectbox(tr("Size", "الحجم"), list(SIZES), format_func=lambda z: SIZES[z] if is_ar() else z)
         notes = st.text_area(tr("Your plans (optional)", "خططك (اختياري)"),
@@ -227,8 +229,9 @@ def advisor(lang):
     if comp:
         here = f"{comp['in_area']:,}" if comp["in_area"] is not None else tr("fewer than 5", "أقل من 5")
         if is_ar():
-            where = f"، المرتبة {comp['rank']} من {comp['areas']} منطقة" if comp["rank"] else ""
-            m3.metric(f"خطر التشبع في {r_n}", _level(comp["level"]), f"{here} رخصة {a_n} هنا{where}", delta_color="off")
+            where = f"، المرتبة {comp['rank']} من {count(comp['areas'], 'منطقة', 'مناطق')}" if comp["rank"] else ""
+            lic = (count(comp["in_area"], "رخصة", "رخص") if comp["in_area"] is not None else "أقل من 5 رخص")
+            m3.metric(f"خطر التشبع في {r_n}", _level(comp["level"]), f"{lic} ({a_n}) هنا{where}", delta_color="off")
         else:
             where = f", rank {comp['rank']} of {comp['areas']} areas" if comp["rank"] else ""
             m3.metric(f"Saturation risk in {area}", comp["level"].capitalize(),
@@ -237,7 +240,7 @@ def advisor(lang):
         n12 = facts["new_businesses_all_sectors_in_area_last_12_months"]
         m3.metric(tr(f"Competition in {area}", f"المنافسة في {r_n}"),
                   COMP_AR.get(facts["competition_level"]) if is_ar() else facts["competition_level"].capitalize(),
-                  tr(f"{n12:,} new businesses in the area / 12 mo", f"{n12:,} منشأة جديدة في المنطقة خلال 12 شهراً"),
+                  tr(f"{n12:,} new businesses in the area / 12 mo", f"{count(n12, 'منشأة جديدة', 'منشآت جديدة')} في المنطقة خلال 12 شهراً"),
                   delta_color="off")
     c1, c2 = st.columns([1.2, 1], gap="large")
     with c1:

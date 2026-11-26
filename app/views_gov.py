@@ -13,7 +13,7 @@ import backend as be
 import charts as ch
 import ui
 from core import ai
-from i18n import is_ar, sig, lang as cur_lang, month, name, tr
+from i18n import count, is_ar, sig, lang as cur_lang, month, name, tr
 from labels import TITLES, TITLES_AR
 
 PC = ch.CHART_CONFIG
@@ -55,7 +55,7 @@ def overview(lang):
         sev = oa.get("by_severity", {})
         h, m, lo = sev.get("high", 0), sev.get("medium", 0), sev.get("low", 0)
         ui.kpi(tr("Open early warnings", "الإنذارات المفتوحة"), f"{oa['value']}", None,
-               tr(f"{h} high · {m} medium · {lo} low", f"{h} مرتفع · {m} متوسط · {lo} منخفض"))
+               tr(f"{h} high · {m} medium · {lo} low", f"مرتفع: {h} · متوسط: {m} · منخفض: {lo}"))
     st.write("")
     left, right = st.columns([2, 1], gap="large")
     with left:
@@ -128,9 +128,9 @@ def _updates_feed():
         inds = ", ".join(c.get("indicators", []))
         ds = ui._NICE_AR.get(c["dataset"], c["dataset"]) if is_ar() else c["dataset"]
         if is_ar():
-            row = (f"<b>{ui.ago(c['time'])}</b>: أضافت {ds} {c['rows_added']:,} صفاً "
-                   f"({len(c.get('indicators', []))} مؤشرات)"
-                   + (f". <b style='color:{ch.RED_TXT}'>{n} إنذارات جديدة</b>" if n else ". لا إنذارات جديدة."))
+            row = (f"<b>{ui.ago(c['time'])}</b>: أضافت {ds} {count(c['rows_added'], 'صف', 'صفوف', 'صفاً')} "
+                   f"({count(len(c.get('indicators', [])), 'مؤشر', 'مؤشرات', 'مؤشراً')})"
+                   + (f". <b style='color:{ch.RED_TXT}'>{count(n, "إنذار جديد", "إنذارات جديدة", "إنذاراً جديداً", "إنذاران جديدان")}</b>" if n else ". لا إنذارات جديدة."))
         else:
             row = (f"<b>{ui.ago(c['time'])}</b>: {ds} added {c['rows_added']:,} rows ({inds})"
                    + (f". <b style='color:{ch.RED_TXT}'>{n} new alert{'s' if n != 1 else ''}</b>" if n else
@@ -431,7 +431,7 @@ def actions(lang):
             increasing=dict(marker=dict(color=ch.GREEN)), totals=dict(marker=dict(color=ch.GOLD)),
             decreasing=dict(marker=dict(color=ch.RED))))
         gain = sim["businesses_retained"] + extra
-        ch.style(fig, tr(f"+{gain:,} businesses from two policy levers", f"{sig(f'+{gain:,}')} منشأة من أداتين للسياسات"),
+        ch.style(fig, tr(f"+{gain:,} businesses from two policy levers", count(gain, 'منشأة', 'منشآت').replace(f"{gain:,}", sig(f"+{gain:,}"), 1) + " من أداتين للسياسات"),
                  tr("Active licences: today vs with renewal and campaign actions",
                     "الرخص السارية: اليوم مقارنة بما بعد إجراءات التجديد والحملة"), 420, legend=False)
         fig.update_yaxes(range=[base * 0.9, total * 1.03], tickformat=",")
@@ -649,7 +649,7 @@ def export(lang):
         st.warning(tr("Pick at least one metric.", "اختر مؤشراً واحداً على الأقل."))
         return
     prev = be.get_series(ids, None if gt == "total" else gt, start, end)
-    st.markdown(tr(f"**Preview**, {len(prev):,} rows", f"**معاينة**، {len(prev):,} صفاً"))
+    st.markdown(tr(f"**Preview**, {len(prev):,} rows", f"**معاينة**، {count(len(prev), 'صف', 'صفوف', 'صفاً')}"))
     st.dataframe(prev.head(200), hide_index=True, width="stretch", height=260)
     st.caption(tr("Columns: **period** is the month or year; **value** is the count or percentage; "
                   "**is_partial** is true for a month that is still in progress, so its count is incomplete. "

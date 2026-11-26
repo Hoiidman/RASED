@@ -164,7 +164,7 @@ def group_differences(dim: str) -> dict:
             verb = "still grew" if leader["change_pct"] >= 0 else "fell least"
             finding = (f"{fell} of {n} groups fell. Most resilient: {leader['group']}, which {verb} "
                        f"({leader['change_pct']:+.1f}% in H1 2026 versus H1 2025).")
-            finding_ar = (f"تراجعت {fell} من أصل {n} فئات. الأكثر صموداً: {leader['group']} "
+            finding_ar = (f"تراجعت {fell} من أصل {n} {'فئات' if 3 <= n % 100 <= 10 else 'فئة'}. الأكثر صموداً: {leader['group']} "
                           f"(‪{leader['change_pct']:+.1f}%‬ في النصف الأول 2026 مقارنة بالنصف الأول 2025).")
         else:
             finding = f"{leader['group']}: {leader['change_pct']:+.1f}% in H1 2026 versus H1 2025 (comparable observed groups)."

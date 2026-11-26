@@ -87,7 +87,9 @@ def name(x) -> str:
 
 
 def month(period, short: bool = True) -> str:
-    """'2026-03' -> 'Mar 2026' / 'مارس 2026'."""
+    """'2026-03' -> 'Mar 2026' / 'مارس 2026'. A year-only period ('2025', annual data) stays '2025'."""
+    if len(str(period).strip()) == 4:
+        return str(period).strip()
     try:
         p = pd.Period(str(period)[:7], "M")
     except (ValueError, TypeError):
@@ -95,6 +97,22 @@ def month(period, short: bool = True) -> str:
     if is_ar():
         return f"{MONTHS_AR[p.month - 1]} {p.year}"
     return f"{MONTHS_EN[p.month - 1]} {p.year}" if short else p.strftime("%B %Y")
+
+
+def count(n: int, sing: str, plural: str, acc: str | None = None, dual: str | None = None) -> str:
+    """Arabic counted noun: 3 to 10 take the plural ('5 رخص'), 11 to 99 the singular accusative
+    ('14 فئة', '25 إنذاراً'), and 1, 0 and round hundreds the singular or plural as shown below."""
+    n = int(n)
+    r = n % 100
+    if n == 2 and dual:
+        return dual
+    if n == 0:
+        return f"0 {plural}"
+    if 3 <= r <= 10:
+        return f"{n:,} {plural}"
+    if 11 <= r <= 99:
+        return f"{n:,} {acc or sing}"
+    return f"{n:,} {sing}"
 
 
 def sig(text: str) -> str:

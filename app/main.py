@@ -38,7 +38,7 @@ import backend as be  # noqa: E402
 import ui  # noqa: E402
 import views_gov  # noqa: E402
 import views_inv  # noqa: E402
-from i18n import tr  # noqa: E402
+from i18n import count, tr  # noqa: E402
 from labels import L  # noqa: E402
 
 ui.inject_css()
@@ -82,7 +82,6 @@ if lang == "ar":  # right-to-left text in the main area; charts keep left-to-rig
                 # figures have no letters to take a direction from, so they are set right-aligned explicitly
                 ".block-container .r-k,.block-container .r-k *,.block-container [data-testid='stMetric'],"
                 ".block-container [data-testid='stMetric'] *{text-align:right}"
-                "[data-testid='stMetric'] [data-testid='stMetricValue'],[data-testid='stMetricDelta']{justify-content:flex-end}"
                 "</style>",
                 unsafe_allow_html=True)
 
@@ -105,7 +104,7 @@ if signed_in:
         res = be.run_sync(force=True)
         st.session_state.last_sync = res
         n_ch, n_new = len(res.get("changed", [])), res.get("new_alerts", 0)
-        st.toast(tr(f"{n_ch} dataset(s) changed · {n_new} new alert(s)", f"تغيّرت {n_ch} مجموعة بيانات · {n_new} إنذار جديد"))
+        st.toast(tr(f"{n_ch} dataset(s) changed · {n_new} new alert(s)", f"تغيّرت {count(n_ch, 'مجموعة بيانات', 'مجموعات بيانات')} · {count(n_new, "إنذار جديد", "إنذارات جديدة", "إنذاراً جديداً", "إنذاران جديدان")}"))
     cols[5].button(":material/logout:", key="signout_btn", help=t["logout"], width="stretch", on_click=_sign_out)
 
 # data status lives behind a small icon instead of two lines under the title
@@ -117,7 +116,7 @@ if signed_in:
         n_al = last.get("new_alerts", 0)
         if lang == "ar":
             update = (f"آخر تحديث {ui.ago(last['time'])}: أضافت {ui._NICE_AR.get(last['dataset'], last['dataset'])} "
-                      f"{last['rows_added']:,} صفاً" + (f"، و{n_al} إنذارات جديدة" if n_al else ""))
+                      f"{count(last['rows_added'], 'صف', 'صفوف', 'صفاً')}" + (f"، و{count(n_al, "إنذار جديد", "إنذارات جديدة", "إنذاراً جديداً", "إنذاران جديدان")}" if n_al else ""))
         else:
             update = (f"Updated {ui.ago(last['time'])}: {ui._NICE.get(last['dataset'], last['dataset'])} "
                       f"added {last['rows_added']:,} rows"
